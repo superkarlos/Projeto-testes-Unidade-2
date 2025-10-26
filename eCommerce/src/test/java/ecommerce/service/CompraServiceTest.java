@@ -1,6 +1,7 @@
 package ecommerce.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.math.BigDecimal;
@@ -17,12 +18,10 @@ import ecommerce.entity.TipoProduto;
 
 import org.junit.jupiter.api.*;
 
-
 public class CompraServiceTest {
 
     private CompraService service;
 
- 
     private static final BigDecimal PRECO_BASE = new BigDecimal("100.00");
     private static final BigDecimal DESCONTO_5 = new BigDecimal("0.05");
     private static final BigDecimal DESCONTO_10 = new BigDecimal("0.10");
@@ -33,39 +32,60 @@ public class CompraServiceTest {
         service = new CompraService(null, null, null, null);
     }
 
-  
-
     @Test
     @DisplayName("Deve lançar exceção quando o carrinho for nulo")
     void calcularCustoTotal_quandoCarrinhoNulo_entaoLancaExcecao() {
-        assertThrows(IllegalArgumentException.class,
-                () -> service.calcularCustoTotal(null, Regiao.SUDESTE, TipoCliente.BRONZE),
-                "Carrinho não pode ser nulo");
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> service.calcularCustoTotal(null, Regiao.SUDESTE, TipoCliente.BRONZE));
+
+        assertThat(exception).isNotNull().as("Esperado que exista execao");
+        assertThat(exception.getMessage()).isEqualTo("Carrinho não pode ser nulo").as("Esperado a mensagem igual da execao");
+
+        assertEquals("java.lang.IllegalArgumentException", exception.getClass().getName());
     }
 
     @Test
     @DisplayName("Deve lançar exceção quando a região for nula")
     void calcularCustoTotal_quandoRegiaoNula_entaoLancaExcecao() {
+
         CarrinhoDeCompras carrinho = new CarrinhoDeCompras();
-        assertThrows(IllegalArgumentException.class,
-                () -> service.calcularCustoTotal(carrinho, null, TipoCliente.BRONZE),
-                "Região não pode ser nula");
+
+        IllegalArgumentException exception =  assertThrows(IllegalArgumentException.class,
+                () -> service.calcularCustoTotal(carrinho, null, TipoCliente.BRONZE));
+        assertThat(exception).isNotNull();
+        assertThat(exception.getMessage()).isEqualTo("Região não pode ser nula").as("Esperado a mensagem igual da execao");
+
+        assertEquals("java.lang.IllegalArgumentException", exception.getClass().getName());
     }
+
+    @Test
+    @DisplayName("Deve lançar exceção quando a região for nula")
+    void calcularCustoTotal_quandoTipoClienteNula_entaoLancaExcecao() {
+
+        CarrinhoDeCompras carrinho = new CarrinhoDeCompras();
+
+        IllegalArgumentException exception =  assertThrows(IllegalArgumentException.class,
+         () -> service.calcularCustoTotal(carrinho, Regiao.SUDESTE, null));
+
+        assertThat(exception).isNotNull();
+        assertThat(exception.getMessage()).isEqualTo("Tipo de cliente não pode ser nulo");
+
+        assertEquals("java.lang.IllegalArgumentException", exception.getClass().getName());
+    }
+
 
     @Test
     @DisplayName("Deve retornar 0.00 quando o carrinho estiver vazio")
     void calcularCustoTotal_quandoCarrinhoVazio_entaoRetornaZero() {
+        
         CarrinhoDeCompras carrinho = new CarrinhoDeCompras();
         carrinho.setItens(List.of());
 
         BigDecimal total = service.calcularCustoTotal(carrinho, Regiao.SUDESTE, TipoCliente.BRONZE);
 
-        assertThat(total)
-            .as("Total esperado para carrinho vazio")
-            .isEqualByComparingTo("0.00");
+        assertThat(total).isEqualByComparingTo("0.00");
     }
-
-  
 
     @Test
     @DisplayName("Deve calcular subtotal corretamente sem descontos")
@@ -86,9 +106,7 @@ public class CompraServiceTest {
 
         BigDecimal total = service.calcularCustoTotal(carrinho, Regiao.SUDESTE, TipoCliente.BRONZE);
 
-        assertThat(total)
-            .as("Soma simples de 100*1 + 100*1")
-            .isEqualByComparingTo("200.00");
+        assertThat(total).as("Soma simples de 100*1 + 100*1").isEqualByComparingTo("200.00");
     }
 
     @Test
@@ -97,7 +115,7 @@ public class CompraServiceTest {
         Produto produto = criarProduto("Produto X", PRECO_BASE, TipoProduto.ELETRONICO, false);
 
         ItemCompra item1 = new ItemCompra();
-		item1.setProduto(produto);
+        item1.setProduto(produto);
         item1.setQuantidade(1L);
         ItemCompra item2 = new ItemCompra();
         item2.setProduto(produto);
@@ -115,8 +133,8 @@ public class CompraServiceTest {
         BigDecimal esperado = subtotal.subtract(subtotal.multiply(DESCONTO_5));
 
         assertThat(total)
-            .as("Deve aplicar 5% de desconto para 3 itens do mesmo tipo")
-            .isEqualByComparingTo(esperado.setScale(2, BigDecimal.ROUND_HALF_UP));
+                .as("Deve aplicar 5% de desconto para 3 itens do mesmo tipo")
+                .isEqualByComparingTo(esperado.setScale(2, BigDecimal.ROUND_HALF_UP));
     }
 
     @Test
@@ -126,7 +144,7 @@ public class CompraServiceTest {
 
         ItemCompra item1 = new ItemCompra(); // total = 1200
         item1.setProduto(produto);
-		item1.setQuantidade(2L);
+        item1.setQuantidade(2L);
         CarrinhoDeCompras carrinho = new CarrinhoDeCompras();
         carrinho.setItens(List.of(item1));
 
@@ -136,11 +154,9 @@ public class CompraServiceTest {
         BigDecimal esperado = subtotal.subtract(subtotal.multiply(DESCONTO_20));
 
         assertThat(total)
-            .as("Deve aplicar 20% de desconto no subtotal acima de 1000")
-            .isEqualByComparingTo(esperado.setScale(2));
+                .as("Deve aplicar 20% de desconto no subtotal acima de 1000")
+                .isEqualByComparingTo(esperado.setScale(2));
     }
-
-
 
     @Test
     @DisplayName("Deve aplicar frete zero para clientes Ouro")
@@ -149,8 +165,8 @@ public class CompraServiceTest {
         produto.setPesoFisico(new BigDecimal("20.00"));
 
         ItemCompra item = new ItemCompra();
-	    item.setProduto(produto);
-		item.setQuantidade(1L);
+        item.setProduto(produto);
+        item.setQuantidade(1L);
         CarrinhoDeCompras carrinho = new CarrinhoDeCompras();
         carrinho.setItens(List.of(item));
 
@@ -158,8 +174,8 @@ public class CompraServiceTest {
 
         BigDecimal subtotal = PRECO_BASE;
         assertThat(total)
-            .as("Cliente Ouro tem 100% de desconto no frete")
-            .isEqualByComparingTo(subtotal.setScale(2));
+                .as("Cliente Ouro tem 100% de desconto no frete")
+                .isEqualByComparingTo(subtotal.setScale(2));
     }
 
     @Test
@@ -178,11 +194,9 @@ public class CompraServiceTest {
         BigDecimal totalSudeste = service.calcularCustoTotal(carrinho, Regiao.SUDESTE, TipoCliente.BRONZE);
 
         assertThat(totalNordeste)
-            .as("Frete Nordeste deve ser maior que Sudeste devido ao multiplicador de 1.10")
-            .isGreaterThan(totalSudeste);
+                .as("Frete Nordeste deve ser maior que Sudeste devido ao multiplicador de 1.10")
+                .isGreaterThan(totalSudeste);
     }
-
- 
 
     private Produto criarProduto(String nome, BigDecimal preco, TipoProduto tipo, boolean fragil) {
         Produto p = new Produto();
