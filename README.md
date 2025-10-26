@@ -38,6 +38,8 @@ A funcionalidade de finalização de compra calcula o preço total considerando:
 
 <img width="822" height="159" alt="Captura de tela de 2025-10-26 16-28-30" src="https://github.com/user-attachments/assets/7701b511-2227-4d2e-827e-e0b42eb05dc6" />
 
+CFG (Control Flow Graph - Simplificado)
+<img width="1024" height="1024" alt="Gemini_Generated_Image_fsvkiefsvkiefsvk" src="https://github.com/user-attachments/assets/41589c0f-d6d7-4faf-af22-3b2d9838a05f" />
 
 ## Instruções de Execução Pré-requisitos
 
