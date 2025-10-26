@@ -19,7 +19,7 @@ public class CarrinhoDeComprasService
 	}
 
 	public CarrinhoDeCompras buscarPorCarrinhoIdEClienteId(Long carrinhoId, Cliente cliente)
-	{
+{
 		return repository.findByIdAndCliente(carrinhoId, cliente)
 				.orElseThrow(() -> new IllegalArgumentException("Carrinho não encontrado."));
 	}
