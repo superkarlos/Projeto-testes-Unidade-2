@@ -3,9 +3,7 @@ package ecommerce.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -37,11 +35,11 @@ public class CompraServiceTest {
     void calcularCustoTotal_quandoCarrinhoNulo_entaoLancaExcecao() {
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> service.calcularCustoTotal(null, Regiao.SUDESTE, TipoCliente.BRONZE));
+         () -> service.calcularCustoTotal(null, Regiao.SUDESTE, TipoCliente.BRONZE));
 
         assertThat(exception).isNotNull().as("Esperado que exista execao");
-        assertThat(exception.getMessage()).isEqualTo("Carrinho não pode ser nulo").as("Esperado a mensagem igual da execao");
-
+        assertThat(exception.getMessage()).isEqualTo("Carrinho não pode ser nulo")
+         .as("Esperado a mensagem igual da execao");
         assertEquals("java.lang.IllegalArgumentException", exception.getClass().getName());
     }
 
@@ -132,8 +130,7 @@ public class CompraServiceTest {
         BigDecimal subtotal = PRECO_BASE.multiply(BigDecimal.valueOf(3));
         BigDecimal esperado = subtotal.subtract(subtotal.multiply(DESCONTO_5));
 
-        assertThat(total)
-                .as("Deve aplicar 5% de desconto para 3 itens do mesmo tipo")
+        assertThat(total).as("Deve aplicar 5% de desconto para 3 itens do mesmo tipo")
                 .isEqualByComparingTo(esperado.setScale(2, BigDecimal.ROUND_HALF_UP));
     }
 

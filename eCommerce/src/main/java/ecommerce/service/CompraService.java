@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -23,6 +22,7 @@ import ecommerce.entity.TipoCliente;
 import ecommerce.entity.TipoProduto;
 import ecommerce.external.IEstoqueExternal;
 import ecommerce.external.IPagamentoExternal;
+import ecommerce.service.util.MetodosAuxilar;
 import jakarta.transaction.Transactional;
 
 @Service
@@ -78,9 +78,46 @@ public class CompraService {
 
 		return compraDTO;
 	}
-
+    
 	public BigDecimal calcularCustoTotal(CarrinhoDeCompras carrinho, Regiao regiao, TipoCliente tipoCliente) {
 
+		validarEntradas(carrinho, regiao, tipoCliente);
+	
+		List<ItemCompra> itensCarrinho = carrinho.getItens();
+		if (itensCarrinho == null || itensCarrinho.isEmpty()) {
+			return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+		}
+	
+		validarItens(itensCarrinho);
+	
+		BigDecimal subtotalGeral = calcularSubtotal(itensCarrinho);
+
+		BigDecimal descontoPorTipo = calcularDescontoPorTipo(itensCarrinho);
+
+		BigDecimal subtotalComDescontoPorTipo = subtotalGeral.subtract(descontoPorTipo);
+	
+		BigDecimal descontoPorValorTotal = calcularDescontoPorValor(subtotalComDescontoPorTipo);
+
+		BigDecimal subtotalFinal = subtotalComDescontoPorTipo.subtract(descontoPorValorTotal);
+	
+		BigDecimal pesoTotal = calcularPesoTotal(itensCarrinho);
+
+		BigDecimal valorFrete = calcularFrete(pesoTotal);
+	
+		BigDecimal taxaFragilidade = calcularTaxaDeProdutosFrageis(itensCarrinho);
+
+		valorFrete = valorFrete.add(taxaFragilidade);
+	
+		BigDecimal freteComMultiplicador = aplicarMultiplicadorDeRegiao(valorFrete, regiao);
+
+		BigDecimal freteFinal = aplicarDescontoPorTipoCliente(freteComMultiplicador, tipoCliente);
+	
+		return subtotalFinal.add(freteFinal).setScale(2, RoundingMode.HALF_UP);
+	}
+	
+
+	//==============================================================================================  
+	private void validarEntradas(CarrinhoDeCompras carrinho, Regiao regiao, TipoCliente tipoCliente) {
 		if (carrinho == null) {
 			throw new IllegalArgumentException("Carrinho não pode ser nulo");
 		}
@@ -90,152 +127,159 @@ public class CompraService {
 		if (tipoCliente == null) {
 			throw new IllegalArgumentException("Tipo de cliente não pode ser nulo");
 		}
-
-		List<ItemCompra> itens = carrinho.getItens();
+	}
+	
+	private void validarItens(List<ItemCompra> itensCarrinho) {
+		for (ItemCompra item : itensCarrinho) {
+			if (item == null || item.getProduto() == null) {
+				throw new IllegalArgumentException("Item de compra ou produto não pode ser nulo");
+			}
+	
+			if (item.getQuantidade() == null || item.getQuantidade() < 0) {
+				throw new IllegalArgumentException("Quantidade inválida no produto: " + item.getProduto().getNome());
+			}
+	
+			if (item.getProduto().getPreco() == null || item.getProduto().getPreco().compareTo(BigDecimal.ZERO) < 0) {
+				throw new IllegalArgumentException("Preço inválido no produto: " + item.getProduto().getNome());
+			}
+		}
+	}
+	
+	private BigDecimal calcularSubtotal(List<ItemCompra> itensCarrinho) {
 		BigDecimal subtotal = BigDecimal.ZERO;
-
-		if (itens == null || itens.isEmpty()) {
-			return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+	
+		for (ItemCompra item : itensCarrinho) {
+			Produto produto = item.getProduto();
+			BigDecimal precoProduto = produto.getPreco() == null ? BigDecimal.ZERO : produto.getPreco();
+			BigDecimal quantidadeItem = BigDecimal.valueOf(item.getQuantidade() == null ? 0L : item.getQuantidade());
+			subtotal = subtotal.add(precoProduto.multiply(quantidadeItem));
 		}
 	
-		for (ItemCompra item : itens) {
-
+		return subtotal;
+	}
+	
+	private BigDecimal calcularDescontoPorTipo(List<ItemCompra> itensCarrinho) {
+		Map<TipoProduto, Long> quantidadePorTipo = new HashMap<>();
+	
+		for (ItemCompra item : itensCarrinho) {
 			Produto produto = item.getProduto();
-
-			if (produto  == null || produto .getPreco() == null){
-				continue;
+			if (produto != null && produto.getTipo() != null) {
+				long quantidade = item.getQuantidade() == null ? 0L : item.getQuantidade();
+				quantidadePorTipo.put(produto.getTipo(),
+						quantidadePorTipo.getOrDefault(produto.getTipo(), 0L) + quantidade);
 			}
-				
-			BigDecimal quantidade = BigDecimal.valueOf(item.getQuantidade() == null ? 0L : item.getQuantidade());
-			BigDecimal valorItem = produto .getPreco().multiply(quantidade);
-
-			subtotal = subtotal.add(valorItem);
 		}
-
-		Map<TipoProduto, Long> qtdPorTipo = new HashMap<>();
-
-		for (ItemCompra item : itens) {
+	
+		BigDecimal totalDesconto = BigDecimal.ZERO;
+	
+		for (Map.Entry<TipoProduto, Long> entrada : quantidadePorTipo.entrySet()) {
+			BigDecimal percentualDesconto = calcularPercentualDescontoPorQuantidade(entrada.getValue());
+			if (percentualDesconto.compareTo(BigDecimal.ZERO) > 0) {
+				BigDecimal subtotalTipo = calcularSubtotalPorTipo(itensCarrinho, entrada.getKey());
+				totalDesconto = totalDesconto.add(subtotalTipo.multiply(percentualDesconto));
+			}
+		}
+	
+		return totalDesconto;
+	}
+	
+	private BigDecimal calcularPercentualDescontoPorQuantidade(Long quantidade) {
+		if (quantidade >= 3 && quantidade <= 4) return new BigDecimal("0.05");
+		if (quantidade >= 5 && quantidade <= 7) return new BigDecimal("0.10");
+		if (quantidade >= 8) return new BigDecimal("0.15");
+		return BigDecimal.ZERO;
+	}
+	
+	private BigDecimal calcularSubtotalPorTipo(List<ItemCompra> itensCarrinho, TipoProduto tipoProduto) {
+		BigDecimal subtotalTipo = BigDecimal.ZERO;
+	
+		for (ItemCompra item : itensCarrinho) {
 			Produto produto = item.getProduto();
-
-			if (produto  == null || produto .getTipo() == null){
-				continue;
-			}
-				
-			TipoProduto tipo = produto.getTipo();
-
-			long quantidade = item.getQuantidade() == null ? 0L : item.getQuantidade();
-			qtdPorTipo.put(tipo, qtdPorTipo.getOrDefault(tipo, 0L) + quantidade);
-		}
-
-		BigDecimal descontoPorTipoTotal = BigDecimal.ZERO;
-
-		for (Map.Entry<TipoProduto, Long> entry : qtdPorTipo.entrySet()) {
-
-			long quantidade = entry.getValue();
-			BigDecimal percentual = BigDecimal.ZERO;
-			
-			if (quantidade >= 3 && quantidade  <= 4)
-				percentual = new BigDecimal("0.05"); // 5%
-			else if (quantidade  >= 5 && quantidade  <= 7)
-				percentual = new BigDecimal("0.10"); // 10%
-			else if (quantidade  >= 8)
-				percentual = new BigDecimal("0.15"); // 15%
-
-			if (percentual.compareTo(BigDecimal.ZERO) > 0) {
-		
-				BigDecimal subtotalTipo = BigDecimal.ZERO;
-
-				for (ItemCompra item : itens) {
-					Produto produto = item.getProduto();
-
-					if (produto != null && produto.getTipo() == entry.getKey()) {
-						BigDecimal qtdItem = BigDecimal
-								.valueOf(item.getQuantidade() == null ? 0L : item.getQuantidade());
-						subtotalTipo = subtotalTipo.add(produto.getPreco().multiply(qtdItem));
-					}
-				}
-
-				descontoPorTipoTotal = descontoPorTipoTotal.add(subtotalTipo.multiply(percentual));
+			if (produto != null && produto.getTipo() == tipoProduto) {
+				BigDecimal precoProduto = produto.getPreco() == null ? BigDecimal.ZERO : produto.getPreco();
+				BigDecimal quantidadeItem = BigDecimal.valueOf(item.getQuantidade() == null ? 0L : item.getQuantidade());
+				subtotalTipo = subtotalTipo.add(precoProduto.multiply(quantidadeItem));
 			}
 		}
-
-		BigDecimal subtotalAposDescontoTipo = subtotal.subtract(descontoPorTipoTotal);
-		BigDecimal descontoPorValor = BigDecimal.ZERO;
-
-		if (subtotalAposDescontoTipo.compareTo(new BigDecimal("1000.00")) > 0) {
-			descontoPorValor = subtotalAposDescontoTipo.multiply(new BigDecimal("0.20")); // 20%
-		} 
-		else if (subtotalAposDescontoTipo.compareTo(new BigDecimal("500.00")) > 0) {
-			descontoPorValor = subtotalAposDescontoTipo.multiply(new BigDecimal("0.10")); // 10%
+	
+		return subtotalTipo;
+	}
+	
+	private BigDecimal calcularDescontoPorValor(BigDecimal subtotal) {
+		if (subtotal.compareTo(new BigDecimal("1000.00")) > 0) {
+			return subtotal.multiply(new BigDecimal("0.20"));
+		} else if (subtotal.compareTo(new BigDecimal("500.00")) > 0) {
+			return subtotal.multiply(new BigDecimal("0.10"));
 		}
-
-		BigDecimal subtotalFinal = subtotalAposDescontoTipo.subtract(descontoPorValor);
+		return BigDecimal.ZERO;
+	}
+	
+	private BigDecimal calcularPesoTotal(List<ItemCompra> itensCarrinho) {
 		BigDecimal pesoTotal = BigDecimal.ZERO;
-
-		for (ItemCompra item : itens) {
-			Produto p = item.getProduto();
-			if (p == null){
-
-			}
-				
-			BigDecimal pesoFisico = p.getPesoFisico() == null ? BigDecimal.ZERO : p.getPesoFisico(); // kg
-			BigDecimal c = p.getComprimento() == null ? BigDecimal.ZERO : p.getComprimento();
-			BigDecimal l = p.getLargura() == null ? BigDecimal.ZERO : p.getLargura();
-			BigDecimal a = p.getAltura() == null ? BigDecimal.ZERO : p.getAltura();
-
-			// peso cubico = (C * L * A) / 6000
-			BigDecimal pesoCubico = c.multiply(l).multiply(a).divide(new BigDecimal("6000"), 10, RoundingMode.HALF_UP);
-
+	
+		for (ItemCompra item : itensCarrinho) {
+			Produto produto = item.getProduto();
+			if (produto == null) continue;
+	
+			BigDecimal pesoFisico = produto.getPesoFisico() == null ? BigDecimal.ZERO : produto.getPesoFisico();
+			BigDecimal comprimento = produto.getComprimento() == null ? BigDecimal.ZERO : produto.getComprimento();
+			BigDecimal largura = produto.getLargura() == null ? BigDecimal.ZERO : produto.getLargura();
+			BigDecimal altura = produto.getAltura() == null ? BigDecimal.ZERO : produto.getAltura();
+	
+			BigDecimal pesoCubico = comprimento.multiply(largura).multiply(altura)
+					.divide(new BigDecimal("6000"), 10, RoundingMode.HALF_UP);
+	
 			BigDecimal pesoTributavel = pesoFisico.max(pesoCubico);
-			BigDecimal qtd = BigDecimal.valueOf(item.getQuantidade() == null ? 0L : item.getQuantidade());
-			pesoTotal = pesoTotal.add(pesoTributavel.multiply(qtd));
-		}
-
+			BigDecimal quantidade = BigDecimal.valueOf(item.getQuantidade() == null ? 0L : item.getQuantidade());
 	
-		BigDecimal frete = BigDecimal.ZERO;
-		if (pesoTotal.compareTo(new BigDecimal("0.00")) == 0 || pesoTotal.compareTo(new BigDecimal("5.00")) <= 0) {
-			frete = BigDecimal.ZERO;
-		}
-		
-		else if (pesoTotal.compareTo(new BigDecimal("5.00")) > 0 && pesoTotal.compareTo(new BigDecimal("10.00")) <= 0) {
-			frete = pesoTotal.multiply(new BigDecimal("2.00")).add(new BigDecimal("12.00"));
+			pesoTotal = pesoTotal.add(pesoTributavel.multiply(quantidade));
 		}
 	
-		else if (pesoTotal.compareTo(new BigDecimal("10.00")) > 0
-				&& pesoTotal.compareTo(new BigDecimal("50.00")) <= 0) {
-			frete = pesoTotal.multiply(new BigDecimal("4.00")).add(new BigDecimal("12.00"));
-		}
-		
-		else {
-			frete = pesoTotal.multiply(new BigDecimal("7.00")).add(new BigDecimal("12.00"));
-		}
-
-
-		BigDecimal taxaFragil = BigDecimal.ZERO;
-		for (ItemCompra item : itens) {
+		return pesoTotal;
+	}
+	
+	private BigDecimal calcularFrete(BigDecimal pesoTotal) {
+		if (pesoTotal.compareTo(BigDecimal.ZERO) == 0 || pesoTotal.compareTo(new BigDecimal("5.00")) <= 0)
+			return BigDecimal.ZERO;
+	
+		if (pesoTotal.compareTo(new BigDecimal("5.00")) > 0 && pesoTotal.compareTo(new BigDecimal("10.00")) <= 0)
+			return pesoTotal.multiply(new BigDecimal("2.00")).add(new BigDecimal("12.00"));
+	
+		if (pesoTotal.compareTo(new BigDecimal("10.00")) > 0 && pesoTotal.compareTo(new BigDecimal("50.00")) <= 0)
+			return pesoTotal.multiply(new BigDecimal("4.00")).add(new BigDecimal("12.00"));
+	
+		return pesoTotal.multiply(new BigDecimal("7.00")).add(new BigDecimal("12.00"));
+	}
+	
+	private BigDecimal calcularTaxaDeProdutosFrageis(List<ItemCompra> itensCarrinho) {
+		BigDecimal taxaTotal = BigDecimal.ZERO;
+	
+		for (ItemCompra item : itensCarrinho) {
 			Produto produto = item.getProduto();
 			if (produto != null && Boolean.TRUE.equals(produto.isFragil())) {
-				BigDecimal qtd = BigDecimal.valueOf(item.getQuantidade() == null ? 0L : item.getQuantidade());
-				taxaFragil = taxaFragil.add(new BigDecimal("5.00").multiply(qtd));
+				BigDecimal quantidade = BigDecimal.valueOf(item.getQuantidade() == null ? 0L : item.getQuantidade());
+				taxaTotal = taxaTotal.add(new BigDecimal("5.00").multiply(quantidade));
 			}
 		}
-
-		frete = frete.add(taxaFragil);
-		BigDecimal multiplicador = getMultiplicadorPorRegiao(regiao);
-		frete = frete.multiply(multiplicador);
-
-		
-		BigDecimal freteFinal = frete;
-		if (tipoCliente == TipoCliente.OURO) {
-			freteFinal = BigDecimal.ZERO;
-		} else if (tipoCliente == TipoCliente.PRATA) {
-			freteFinal = frete.divide(new BigDecimal("2.00"), 10, RoundingMode.HALF_UP);
-		}
-		
-		BigDecimal total = subtotalFinal.add(freteFinal).setScale(2, RoundingMode.HALF_UP);
-		return total;
+	
+		return taxaTotal;
 	}
-
+	
+	private BigDecimal aplicarMultiplicadorDeRegiao(BigDecimal valorFrete, Regiao regiao) {
+		BigDecimal multiplicador = getMultiplicadorPorRegiao(regiao);
+		return valorFrete.multiply(multiplicador);
+	}
+	
+	private BigDecimal aplicarDescontoPorTipoCliente(BigDecimal valorFrete, TipoCliente tipoCliente) {
+		if (tipoCliente == TipoCliente.OURO) {
+			return BigDecimal.ZERO;
+		} else if (tipoCliente == TipoCliente.PRATA) {
+			return valorFrete.divide(new BigDecimal("2.00"), 10, RoundingMode.HALF_UP);
+		}
+		return valorFrete;
+	}
+		
+	
 	private BigDecimal getMultiplicadorPorRegiao(Regiao regiao) {
 		switch (regiao) {
 			case SUDESTE:
@@ -252,5 +296,7 @@ public class CompraService {
 				return new BigDecimal("1.00");
 		}
 	}
+    
 	
+    
 }
