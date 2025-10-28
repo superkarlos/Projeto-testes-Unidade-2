@@ -499,4 +499,25 @@ public class  CompraServiceParticoesTest {
                 .as("Mensagem de erro deve bater com a implementação")
                 .isEqualTo("Região não pode ser nula");
     }
+
+    /**
+     * Teste de Robustez P8: Nível de cliente nulo
+     * Verifica se o sistema lança uma exceção quando o TipoCliente é nulo.
+     */
+    @Test
+    @DisplayName("Robustez P8: Lança exceção se Nível do Cliente for nulo")
+    void quandoNivelClienteNulo_entaoLancaExcecao() {
+
+        Produto p = TestUtils.produtoPadrao();
+        CarrinhoDeCompras carrinho = TestUtils.carrinho(TestUtils.item(p, 1));
+        Regiao regiao = Regiao.SUDESTE;
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            compraService.calcularCustoTotal(carrinho, regiao, null);
+        }, "Deveria lançar exceção para cliente nulo");
+
+        assertThat(exception.getMessage())
+                .as("Mensagem de erro deve bater com a implementação")
+                .isEqualTo("Tipo de cliente não pode ser nulo");
+    }
 }

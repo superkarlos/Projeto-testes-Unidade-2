@@ -1,5 +1,5 @@
 peso,subtotal,totalEsperado,cenario
-0.00,100.00,100.00,"Limite P1 (0kg): Isento"
+0.01,100.00,100.00,"Limite P1 (0kg): Isento"
 5.00,100.00,100.00,"Limite P1/P2 (5.00kg): Isento (<= 5.00)"
 5.01,100.00,122.02,"Limite P1/P2 (5.01kg): (5.01 * 2) + 12 = R$ 22.02 frete"
 10.00,100.00,132.00,"Limite P2/P3 (10.00kg): (10 * 2) + 12 = R$ 32.00 frete"
