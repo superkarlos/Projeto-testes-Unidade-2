@@ -67,10 +67,10 @@ public class  CompraServiceParticoesTest {
      * - O peso é mantido em 1kg (isento) para não adicionar frete.
      * - Cliente BRONZE e Região SUDESTE são usados para não alterar o frete.
      */
-    @ParameterizedTest(name = "[{index}] {3}") // Usa a 4ª coluna (cenario)
+    @ParameterizedTest(name = "[{index}] {3}")
     @CsvFileSource(
             resources = "/ecommerce/service/particoes_desconto_itens.csv",
-            numLinesToSkip = 1 // Pula a linha de cabeçalho
+            numLinesToSkip = 1
     )
     @DisplayName("Partições: Desconto por Múltiplos Itens")
     void quandoQuantidadeItensMesmoTipoVaria_entaoAplicaDescontoCorreto(
@@ -195,7 +195,7 @@ public class  CompraServiceParticoesTest {
      * - Usamos um peso (2 * 3.0 = 6.0kg) para sair da faixa isenta e ter um frete base.
      * - Cliente BRONZE e Região SUDESTE.
      */
-    @ParameterizedTest(name = "[{index}] {5}") // Usa a 6ª coluna (cenario)
+    @ParameterizedTest(name = "[{index}] {5}")
     @CsvFileSource(
             resources = "/ecommerce/service/particoes_frete_taxa_manuseio.csv",
             numLinesToSkip = 1
@@ -312,5 +312,37 @@ public class  CompraServiceParticoesTest {
         String nomeProduto = p.getNome();
         assertThat(exception.getMessage()).as("Mensagem de erro deve ser clara")
                 .contains("Quantidade inválida no produto: " + nomeProduto);
+    }
+
+    /**
+     * Teste de Robustez P2: Preços negativos
+     * Verifica se o sistema lança uma exceção quando o preço
+     * de um produto no carrinho é negativo.
+     */
+    @Test
+    @DisplayName("Robustez P2: Lança exceção se Preço for negativo")
+    void quandoItemComPrecoNegativo_entaoLancaExcecao() {
+
+        String nomeProdutoInvalido = "Produto Preço Negativo";
+
+        Produto p = TestUtils.produto(
+                nomeProdutoInvalido,
+                "-100.00",
+                "1.0", "1", "1", "1",
+                false,
+                TipoProduto.ELETRONICO
+        );
+
+        CarrinhoDeCompras carrinho = TestUtils.carrinho(TestUtils.item(p, 1));
+        Regiao regiao = Regiao.SUDESTE;
+        TipoCliente cliente = TipoCliente.BRONZE;
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            compraService.calcularCustoTotal(carrinho, regiao, cliente);
+        }, "Deveria lançar exceção para preço negativo");
+
+        assertThat(exception.getMessage())
+                .as("Mensagem de erro deve bater com a implementação")
+                .isEqualTo("Preço inválido no produto: " + nomeProdutoInvalido);
     }
 }
