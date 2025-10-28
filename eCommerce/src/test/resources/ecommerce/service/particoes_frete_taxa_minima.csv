@@ -1,0 +1,3 @@
+peso,subtotal,totalEsperado,cenario
+3.00,100.00,100.00,"P1 (3kg - Isento): Sem taxa mínima de R$ 12"
+7.00,100.00,126.00,"P2 (7kg - Não Isento): Com taxa mínima de R$ 12"

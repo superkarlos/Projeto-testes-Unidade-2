@@ -154,4 +154,35 @@ public class  CompraServiceParticoesTest {
 
         assertThat(total).as(cenario).isEqualByComparingTo(totalEsperado);
     }
+
+    /**
+     * Testa as partições da Taxa Mínima de Frete (R$ 12,00).
+     * P1: Faixa isenta (sem taxa)
+     * P2: Faixa não isenta (com taxa)
+     */
+    @ParameterizedTest(name = "[{index}] {3}")
+    @CsvFileSource(
+            resources = "/ecommerce/service/particoes_frete_taxa_minima.csv",
+            numLinesToSkip = 1
+    )
+    @DisplayName("Partições: Taxa Mínima de Frete (R$ 12)")
+    void quandoFreteIsentoOuNao_entaoAplicaTaxaMinimaCorretamente(
+            String peso, String subtotal, String totalEsperado, String cenario) {
+
+        Produto p = TestUtils.produto(
+                "Produto Teste Taxa",
+                subtotal,
+                peso,
+                "1", "1", "1",
+                false,
+                TipoProduto.ELETRONICO
+        );
+
+        ItemCompra i = TestUtils.item(p, 1);
+        CarrinhoDeCompras carrinho = TestUtils.carrinho(i);
+
+        BigDecimal total = compraService.calcularCustoTotal(carrinho, Regiao.SUDESTE, TipoCliente.BRONZE);
+
+        assertThat(total).as(cenario).isEqualByComparingTo(totalEsperado);
+    }
 }
