@@ -11,51 +11,112 @@ import ecommerce.entity.Regiao;
 import ecommerce.entity.TipoCliente;
 import ecommerce.entity.TipoProduto;
 import ecommerce.util.TestUtils;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvFileSource;
 
 import java.math.BigDecimal;
 import static org.assertj.core.api.Assertions.*;
 
 public class CompraServiceLimitesTest {
 
-    private CompraService service;
+    private CompraService compraService;
 
     @BeforeEach
     void setup() {
-        service = new CompraService(null, null, null, null);
+        compraService = new CompraService(null, null, null, null);
     }
 
-    @Test
-    @DisplayName("L01 - peso exatamente 5.00 kg -> frete isento")
-    void L01_pesoExato5_freteIsento() {
-        Produto p = TestUtils.produto("ItemP", "10.00", "5.00", "10", "10", "10", false, TipoProduto.ELETRONICO);
-        ItemCompra i = TestUtils.item(p, 1);
-        CarrinhoDeCompras c = TestUtils.carrinho(i);
+    /**
+     * Testa os limites do Peso Tributável, que é quando físico = cúbico.
+     * Usamos um subtotal fixo de R$ 50,00 (sem desconto por valor).
+     * Usamos Regiao.SUDESTE (x1.0) e TipoCliente.BRONZE (sem desconto no frete)
+     * para isolar o cálculo do frete baseado apenas no peso.
+     */
+    @ParameterizedTest(name = "[{index}] {5}]")
+    @CsvFileSource(
+            resources = "/ecommerce/service/limites_peso_tributavel.csv",
+            numLinesToSkip = 1
+    )
+    @DisplayName("Partições: Cálculo do Peso Tributável (Físico vs Cúbico)")
+    void quandoPesoFisicoOuCubicoMaior_entaoAplicaFreteSobreMaior(String peso, String c, String l, String a, String totalEsperado, String cenario) {
+        Produto produto = TestUtils.produto(
+                "Produto de teste",
+                "50.00",
+                peso,
+                c, l, a,
+                false,
+                TipoProduto.ELETRONICO
+        );
 
-        BigDecimal total = service.calcularCustoTotal(c, Regiao.SUDESTE, TipoCliente.BRONZE);
-        assertThat(total).as("peso 5 => frete 0").isEqualByComparingTo("10.00");
+        ItemCompra i = TestUtils.item(produto, 1);
+        CarrinhoDeCompras carrinho = TestUtils.carrinho(i);
+
+        BigDecimal total = compraService.calcularCustoTotal(carrinho, Regiao.SUDESTE, TipoCliente.BRONZE);
+
+        assertThat(total).as(cenario).isEqualByComparingTo(totalEsperado);
     }
 
-    @Test
-    @DisplayName("L02 - subtotal exatamente 500 -> sem desconto por valor")
-    void L02_subtotal500_semDesconto() {
-        Produto p = TestUtils.produto("ProdutoX", "500.00", "1.00", "10", "10", "10", false, TipoProduto.ELETRONICO);
-        ItemCompra i = TestUtils.item(p, 1);
-        CarrinhoDeCompras c = TestUtils.carrinho(i);
+    /**
+     * Testa os limites de desconto por quantidade de itens do mesmo tipo.
+     * Para isolar esta regra:
+     * - O subtotal é mantido abaixo de R$ 500,00 para não ativar o desconto por valor.
+     * - O peso é mantido em 0.5kg (isento) para não adicionar frete.
+     * - Cliente BRONZE e Região SUDESTE são usados para não alterar o frete.
+     */
+    @ParameterizedTest(name = "[{index}] {3}") // Usa a 4ª coluna (cenario)
+    @CsvFileSource(
+            resources = "/ecommerce/service/limites_desconto_itens.csv",
+            numLinesToSkip = 1 // Pula a linha de cabeçalho
+    )
+    @DisplayName("Partições: Desconto por Múltiplos Itens")
+    void quandoQuantidadeItensMesmoTipoVaria_entaoAplicaDescontoCorreto(
+            int quantidade, String precoUnitario, String totalEsperado, String cenario) {
 
-        BigDecimal total = service.calcularCustoTotal(c, Regiao.SUDESTE, TipoCliente.BRONZE);
-        assertThat(total).as("subtotal 500 => sem desconto por valor").isEqualByComparingTo("500.00");
+        Produto p = TestUtils.produto(
+                "Produto de teste",
+                precoUnitario,
+                "0.5",
+                "1", "1", "1",
+                false,
+                TipoProduto.ELETRONICO
+        );
+
+        ItemCompra i = TestUtils.item(p, quantidade);
+        CarrinhoDeCompras carrinho = TestUtils.carrinho(i);
+
+        BigDecimal total = compraService.calcularCustoTotal(carrinho, Regiao.SUDESTE, TipoCliente.BRONZE);
+
+        assertThat(total).as(cenario).isEqualByComparingTo(totalEsperado);
     }
 
+    /**
+     * Testa os limites de desconto por valor total do carrinho .
+     * Para isolar esta regra:
+     * - Usamos apenas 1 item para não ativar o desconto por múltiplos itens.
+     * - O peso é mantido em 1kg (isento) para não adicionar frete.
+     * - Cliente BRONZE e Região SUDESTE são usados para não alterar o frete.
+     */
+    @ParameterizedTest(name = "[{index}] {2}")
+    @CsvFileSource(
+            resources = "/ecommerce/service/limites_desconto_valor.csv",
+            numLinesToSkip = 1
+    )
+    @DisplayName("Limites: Desconto por Valor de Carrinho")
+    void quandoSubtotalVaria_entaoAplicaDescontoPorValorCorreto(String subtotal, String totalEsperado, String cenario) {
+        Produto produto = TestUtils.produto(
+                "Tesde de produto caro",
+                subtotal,
+                "1",
+                "1","1","1",
+                false,
+                TipoProduto.ELETRONICO
+        );
 
-    @Test
-    @DisplayName("L04 - peso 5.01 -> faixa B com taxa minima")
-    void L04_peso5p01_faixaB() {
-        // Criar produto com peso tributavel 5.01: peso físico 5.01
-        Produto p = TestUtils.produto("Heavy", "10.00", "5.01", "10", "10", "10", false, TipoProduto.ELETRONICO);
-        ItemCompra i = TestUtils.item(p, 1);
-        CarrinhoDeCompras c = TestUtils.carrinho(i);
-        BigDecimal total = service.calcularCustoTotal(c, Regiao.SUDESTE, TipoCliente.BRONZE);
-        assertThat(total).as("peso 5.01 => frete com taxa minima aplicado").isNotNull();
+        ItemCompra i = TestUtils.item(produto, 1);
+        CarrinhoDeCompras carrinho = TestUtils.carrinho(i);
+
+        BigDecimal total = compraService.calcularCustoTotal(carrinho, Regiao.SUDESTE, TipoCliente.BRONZE);
+
+        assertThat(total).as(cenario).isEqualByComparingTo(totalEsperado);
     }
-
 }

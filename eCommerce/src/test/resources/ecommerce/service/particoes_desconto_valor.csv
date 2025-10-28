@@ -1,0 +1,4 @@
+subtotal,totalEsperado,cenario
+300.00,300.00,"P1 (Subtotal R$ 300): 0% desconto"
+700.00,630.00,"P2 (Subtotal R$ 700): 10% desconto"
+1500.00,1200.00,"P3 (Subtotal R$ 1500): 20% desconto"

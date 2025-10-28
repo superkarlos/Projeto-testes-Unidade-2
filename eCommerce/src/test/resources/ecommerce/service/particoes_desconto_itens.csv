@@ -1,5 +1,3 @@
 quantidade,precoUnitario,totalEsperado,cenario
 2,50.00,100.00,"P1 (2 itens): Sem desconto"
-4,50.00,190.00,"P2 (4 itens): 5% de desconto"
 6,50.00,270.00,"P3 (6 itens): 10% de desconto"
-8,50.00,340.00,"P4 (8 itens): 15% de desconto"

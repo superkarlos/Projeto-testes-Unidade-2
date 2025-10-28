@@ -1,0 +1,8 @@
+quantidade,precoUnitario,totalEsperado,cenario
+0,50.00,0.00,"Limite P1 (0 itens): Sem desconto"
+2,50.00,100.00,"Limite P1 (2 itens): Sem desconto"
+3,50.00,142.50,"Limite P2 (3 itens): 5% desconto"
+4,50.00,190.00,"Limite P2 (4 itens): 5% desconto"
+5,50.00,225.00,"Limite P3 (5 itens): 10% desconto"
+7,50.00,315.00,"Limite P3 (7 itens): 10% desconto"
+8,50.00,340.00,"Limite P4 (8 itens): 15% desconto"
