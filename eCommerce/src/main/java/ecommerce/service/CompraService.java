@@ -157,7 +157,7 @@ public class CompraService {
 		}
 	}
 	
-	private BigDecimal calcularSubtotal(List<ItemCompra> itensCarrinho) {
+	public BigDecimal calcularSubtotal(List<ItemCompra> itensCarrinho) {
 		BigDecimal subtotal = BigDecimal.ZERO;
 	
 		for (ItemCompra item : itensCarrinho) {

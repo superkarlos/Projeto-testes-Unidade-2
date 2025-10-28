@@ -18,6 +18,9 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.*;
@@ -515,6 +518,88 @@ public class CompraServiceParticoesTest {
                                 .contains("Item de compra ou produto não pode ser nulo");
         }
 
+        @ParameterizedTest(name = "[{index}] {3}")
+        @CsvSource({
+                        // quantidade, preco, esperado, cenario
+                        "2, 50.00, 100.00, 'Itens normais com preço e quantidade válidos'",
+                        "null, 50.00, 0.00, 'Quantidade nula deve ser tratada como 0'",
+                        "2, null, 0.00, 'Preço nulo deve ser tratado como 0'",
+                        "null, null, 0.00, 'Preço e quantidade nulos devem resultar em subtotal 0'"
+        })
+         @DisplayName("Robustez P10: múltiplos itens diferentes")
+        void quandoItensVariam_entaoCalculaSubtotalCorretamente(
+                        String quantidadeStr,
+                        String precoStr,
+                        String totalEsperado,
+                        String cenario) {
+
+                Integer quantidade = "null".equals(quantidadeStr) ? null : Integer.valueOf(quantidadeStr);
+                BigDecimal preco = "null".equals(precoStr) ? null : new BigDecimal(precoStr);
+
+                Produto produto = new Produto();
+                produto.setNome("Produto Teste");
+                produto.setPreco(preco);
+                produto.setPesoFisico(new BigDecimal("1"));
+                produto.setComprimento(new BigDecimal("1"));
+                produto.setLargura(new BigDecimal("1"));
+                produto.setAltura(new BigDecimal("1"));
+                produto.setTipo(TipoProduto.ELETRONICO);
+
+                ItemCompra item = new ItemCompra();
+                item.setProduto(produto);
+                Long quantidadeLong = quantidade == null ? null : quantidade.longValue();
+                item.setQuantidade(quantidadeLong);
+
+                List<ItemCompra> itens = Collections.singletonList(item);
+
+                BigDecimal subtotal = compraService.calcularSubtotal(itens);
+
+                assertThat(subtotal)
+                                .as(cenario)
+                                .isEqualByComparingTo(new BigDecimal(totalEsperado));
+        }
+
+        /**
+         * Testa múltiplos itens diferentes para garantir soma correta do subtotal
+         */
+        @DisplayName("Robustez P11: múltiplos itens diferentes")
+        @Test
+        void quandoMultiplosItens_entaoSomaSubtotalCorretamente() {
+
+                Produto p1 = new Produto();
+                p1.setNome("Produto 1");
+                p1.setPreco(new BigDecimal("10"));
+                p1.setPesoFisico(new BigDecimal("1"));
+                p1.setComprimento(new BigDecimal("1"));
+                p1.setLargura(new BigDecimal("1"));
+                p1.setAltura(new BigDecimal("1"));
+                p1.setTipo(TipoProduto.ELETRONICO);
+
+                Produto p2 = new Produto();
+                p2.setNome("Produto 2");
+                p2.setPreco(new BigDecimal("20"));
+                p2.setPesoFisico(new BigDecimal("1"));
+                p2.setComprimento(new BigDecimal("1"));
+                p2.setLargura(new BigDecimal("1"));
+                p2.setAltura(new BigDecimal("1"));
+                p2.setTipo(TipoProduto.ELETRONICO);
+
+                ItemCompra i1 = new ItemCompra();
+                i1.setProduto(p1);
+                i1.setQuantidade(2L);
+
+                ItemCompra i2 = new ItemCompra();
+                i2.setProduto(p2);
+                i2.setQuantidade(3L);
+
+                List<ItemCompra> itens = Arrays.asList(i1, i2);
+
+                BigDecimal subtotal = compraService.calcularSubtotal(itens);
+
+                // subtotal = (10*2) + (20*3) = 20 + 60 = 80
+                assertThat(subtotal).isEqualByComparingTo(new BigDecimal("80"));
+        }
+
         // --- Fonte de dados para o teste ---
         static Stream<ItemCompra> fornecerItensNulos() {
                 Produto produtoValido = TestUtils.produtoPadrao();
@@ -524,4 +609,5 @@ public class CompraServiceParticoesTest {
                                 TestUtils.item(null, 1) // Produto nulo dentro do ItemCompra
                 );
         }
+
 }
