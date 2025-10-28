@@ -11,6 +11,8 @@ import ecommerce.entity.Regiao;
 import ecommerce.entity.TipoCliente;
 import ecommerce.entity.TipoProduto;
 import ecommerce.util.TestUtils;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvFileSource;
 
 import java.math.BigDecimal;
 import static org.assertj.core.api.Assertions.*;
@@ -22,6 +24,37 @@ public class CompraServiceRegrasTest {
     @BeforeEach
     void setup() {
         service = new CompraService(null, null, null, null);
+    }
+
+    /**
+     * Testa as 12 regras da Tabela de Decisão para descontos combinados.
+     * Isola a lógica de desconto usando frete R$ 0,00.
+     */
+    @ParameterizedTest(name = "[{index}] {4}")
+    @CsvFileSource(
+            resources = "/ecommerce/service/tabela_decisao_descontos.csv",
+            numLinesToSkip = 1
+    )
+    @DisplayName("Tabela de Decisão: Descontos Combinados (Tipo x Valor)")
+    void quandoCombinacoesDeDescontoOcorrem_entaoAplicaRegrasCorretamente(
+            int qtdItens, String precoUnitario, String subtotal,
+            String totalEsperado, String cenario) {
+
+        Produto p = TestUtils.produto(
+                "Produto Teste",
+                precoUnitario,
+                "0.5",
+                "1", "1", "1",
+                false,
+                TipoProduto.ELETRONICO
+        );
+
+        ItemCompra i = TestUtils.item(p, qtdItens);
+        CarrinhoDeCompras carrinho = TestUtils.carrinho(i);
+
+        BigDecimal total = service.calcularCustoTotal(carrinho, Regiao.SUDESTE, TipoCliente.BRONZE);
+
+        assertThat(total).as(cenario).isEqualByComparingTo(totalEsperado);
     }
 
     @Test

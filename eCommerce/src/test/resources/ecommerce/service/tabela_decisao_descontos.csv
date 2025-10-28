@@ -1,0 +1,13 @@
+qtdItens,precoUnitario,subtotal,totalEsperado,cenario
+1,400.00,400.00,400.00,"R1: Qtd 1, Subtotal <= 500 (Nenhum desconto)"
+1,700.00,700.00,630.00,"R2: Qtd 1, Subtotal > 500 (Desc. Valor 10%)"
+1,1100.00,1100.00,880.00,"R3: Qtd 1, Subtotal > 1000 (Desc. Valor 20%)"
+3,100.00,300.00,285.00,"R4: Qtd 3, Subtotal <= 500 (Desc. Tipo 5%)"
+3,200.00,600.00,513.00,"R5: Qtd 3, Subtotal > 500 (Desc. Tipo 5% -> Desc. Valor 10%)"
+3,400.00,1200.00,912.00,"R6: Qtd 3, Subtotal > 1000 (Desc. Tipo 5% -> Desc. Valor 20%)"
+5,80.00,400.00,360.00,"R7: Qtd 5, Subtotal <= 500 (Desc. Tipo 10%)"
+5,120.00,600.00,486.00,"R8: Qtd 5, Subtotal > 500 (Desc. Tipo 10% -> Desc. Valor 10%)"
+5,250.00,1250.00,900.00,"R9: Qtd 5, Subtotal > 1000 (Desc. Tipo 10% -> Desc. Valor 20%)"
+8,50.00,400.00,340.00,"R10: Qtd 8, Subtotal <= 500 (Desc. Tipo 15%)"
+8,80.00,640.00,489.60,"R11: Qtd 8, Subtotal > 500 (Desc. Tipo 15% -> Desc. Valor 10%)"
+8,150.00,1200.00,816.00,"R12: Qtd 8, Subtotal > 1000 (Desc. Tipo 15% -> Desc. Valor 20%)"

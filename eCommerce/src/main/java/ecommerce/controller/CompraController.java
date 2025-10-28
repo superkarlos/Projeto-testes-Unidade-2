@@ -21,7 +21,7 @@ public class CompraController
 		this.compraService = compraService;
 	}
 
-	@PostMapping("/finalizar")
+	/* @PostMapping("/finalizar")
 	public ResponseEntity<CompraDTO> finalizarCompra(@RequestParam Long carrinhoId, @RequestParam Long clienteId)
 	{
 		try
@@ -42,5 +42,5 @@ public class CompraController
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 					.body(new CompraDTO(false, null, "Erro ao processar compra."));
 		}
-	}
+	} */
 }

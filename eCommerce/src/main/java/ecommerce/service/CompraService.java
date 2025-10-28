@@ -43,7 +43,7 @@ public class CompraService {
 		this.pagamentoExternal = pagamentoExternal;
 	}
 
-	@Transactional
+	/* @Transactional
 	public CompraDTO finalizarCompra(Long carrinhoId, Long clienteId) {
 
 		Cliente cliente = clienteService.buscarPorId(clienteId);
@@ -77,7 +77,7 @@ public class CompraService {
 		CompraDTO compraDTO = new CompraDTO(true, pagamento.transacaoId(), "Compra finalizada com sucesso.");
 
 		return compraDTO;
-	}
+	} */
     
 	public BigDecimal calcularCustoTotal(CarrinhoDeCompras carrinho, Regiao regiao, TipoCliente tipoCliente) {
 
