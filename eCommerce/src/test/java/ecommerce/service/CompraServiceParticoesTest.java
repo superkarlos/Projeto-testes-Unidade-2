@@ -345,4 +345,25 @@ public class  CompraServiceParticoesTest {
                 .as("Mensagem de erro deve bater com a implementação")
                 .isEqualTo("Preço inválido no produto: " + nomeProdutoInvalido);
     }
+
+    /**
+     * Teste de Robustez P3: Cliente nulo
+     * Verifica se o sistema lança uma exceção quando o TipoCliente é nulo.
+     */
+    @Test
+    @DisplayName("Robustez P3: Lança exceção se Cliente for nulo")
+    void quandoClienteNulo_entaoLancaExcecao() {
+
+        Produto p = TestUtils.produtoPadrao();
+        CarrinhoDeCompras carrinho = TestUtils.carrinho(TestUtils.item(p, 1));
+        Regiao regiao = Regiao.SUDESTE;
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            compraService.calcularCustoTotal(carrinho, regiao, null);
+        }, "Deveria lançar exceção para cliente nulo");
+
+        assertThat(exception.getMessage())
+                .as("Mensagem de erro deve bater com a implementação")
+                .isEqualTo("Tipo de cliente não pode ser nulo");
+    }
 }
