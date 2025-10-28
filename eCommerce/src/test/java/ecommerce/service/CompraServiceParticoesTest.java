@@ -478,4 +478,25 @@ public class  CompraServiceParticoesTest {
                 .as("Mensagem de erro deve bater com a implementação")
                 .isEqualTo("Peso físico inválido (deve ser > 0) no produto: " + nomeProdutoInvalido);
     }
+
+    /**
+     * Teste de Robustez P7: Região nula
+     * Verifica se o sistema lança uma exceção quando a Regiao é nula.
+     */
+    @Test
+    @DisplayName("Robustez P7: Lança exceção se Regiao for nula")
+    void quandoRegiaoNula_entaoLancaExcecao() {
+
+        Produto p = TestUtils.produtoPadrao();
+        CarrinhoDeCompras carrinho = TestUtils.carrinho(TestUtils.item(p, 1));
+        TipoCliente cliente = TipoCliente.BRONZE;
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            compraService.calcularCustoTotal(carrinho, null, cliente);
+        }, "Deveria lançar exceção para região nula");
+
+        assertThat(exception.getMessage())
+                .as("Mensagem de erro deve bater com a implementação")
+                .isEqualTo("Região não pode ser nula");
+    }
 }
