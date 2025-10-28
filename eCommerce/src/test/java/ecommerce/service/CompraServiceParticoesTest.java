@@ -122,4 +122,36 @@ public class  CompraServiceParticoesTest {
         assertThat(total).as(cenario).isEqualByComparingTo(totalEsperado);
     }
 
+    /**
+     * Testa o cálculo de frete baseado nas faixas de peso total.
+     * Para isolar esta regra:
+     * - Usamos 1 item não-frágil.
+     * - Usamos Cliente BRONZE (sem desconto de frete).
+     * - Usamos Região SUDESTE (multiplicador 1.0x).
+     * - Subtotal abaixo de R$ 500 (sem desconto de valor).
+     */
+    @ParameterizedTest(name = "[{index}] {3}")
+    @CsvFileSource(
+            resources = "/ecommerce/service/particoes_frete_peso.csv",
+            numLinesToSkip = 1
+    )
+    @DisplayName("Partições: Cálculo do Frete Base por Faixa de Peso")
+    void quandoPesoVaria_entaoAplicaFretePorFaixaCorreta(String peso, String subtotal, String totalEsperado, String cenario) {
+
+        Produto p = TestUtils.produto(
+                "Produto Teste Peso",
+                subtotal,
+                peso,
+                "1", "1", "1",
+                false,
+                TipoProduto.ELETRONICO
+        );
+
+        ItemCompra i = TestUtils.item(p, 1);
+        CarrinhoDeCompras carrinho = TestUtils.carrinho(i);
+
+        BigDecimal total = compraService.calcularCustoTotal(carrinho, Regiao.SUDESTE, TipoCliente.BRONZE);
+
+        assertThat(total).as(cenario).isEqualByComparingTo(totalEsperado);
+    }
 }

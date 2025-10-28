@@ -1,0 +1,5 @@
+peso,subtotal,totalEsperado,cenario
+3.00,100.00,100.00,"P1 (3kg): Frete Isento"
+7.00,100.00,126.00,"P2 (7kg): (7 * 2) + 12 taxa = R$ 26 frete"
+30.00,100.00,232.00,"P3 (30kg): (30 * 4) + 12 taxa = R$ 132 frete"
+60.00,100.00,532.00,"P4 (60kg): (60 * 7) + 12 taxa = R$ 432 frete"
