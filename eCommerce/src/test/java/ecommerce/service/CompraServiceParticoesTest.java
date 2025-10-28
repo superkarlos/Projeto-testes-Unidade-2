@@ -11,8 +11,11 @@ import ecommerce.entity.Regiao;
 import ecommerce.entity.TipoCliente;
 import ecommerce.entity.TipoProduto;
 import ecommerce.util.TestUtils;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import java.math.BigDecimal;
+
 import static org.assertj.core.api.Assertions.*;
 
 public class CompraServiceParticoesTest {
@@ -22,6 +25,53 @@ public class CompraServiceParticoesTest {
     @BeforeEach
     void setup() {
         compraService = new CompraService(null, null, null, null);
+    }
+
+    /**
+     * Testa as partições do Peso Tributável, que é max(físico, cúbico).
+     * Usamos um subtotal fixo de R$ 50,00 (sem desconto por valor).
+     * Usamos Regiao.SUDESTE (x1.0) e TipoCliente.BRONZE (sem desconto no frete)
+     * para isolar o cálculo do frete baseado apenas no peso.
+     */
+    @ParameterizedTest(name = "[{index}] {5}]")
+    @CsvSource({
+            // os parâmetros são respectivamente peso, C,  L,  A, totalEsperado, cenario
+
+            // P1: Físico > Cúbico
+            // Peso Cúbico = (10*10*60)/6000 = 1.0kg
+            // Peso Tributável = max(6.0, 1.0) = 6.0kg (Faixa B: 6*2 + 12 = 24.00)
+            // Total = 50.00 (subtotal) + 24.00 (frete) = 74.00
+            "'6.0', '10', '10', '60', '74.00', 'P1: Peso Físico (6kg) > Cúbico (1kg)'",
+
+            // P2: Cúbico > Físico
+            // Peso Cúbico = (50*30*44)/6000 = 11.0kg
+            // Peso Tributável = max(2.0, 11.0) = 11.0kg (Faixa C: 11*4 + 12 = 56.00)
+            // Total = 50.00 (subtotal) + 56.00 (frete) = 106.00
+            "'2.0', '50', '30', '44', '106.00', 'P2: Peso Cúbico (11kg) > Físico (2kg)'",
+
+            // P2.1: Físico == Cúbico (Limite)
+            // Peso Cúbico = (20*20*60)/6000 = 4.0kg
+            // Peso Tributável = max(4.0, 4.0) = 4.0kg (Faixa A: Isento)
+            // Total = 50.00 (subtotal) + 0.00 (frete) = 50.00
+            "'4.0', '20', '20', '60', '50.00', 'P2.1: Peso Cúbico (4kg) == Físico (4kg)'"
+    })
+    @DisplayName("Partições: Cálculo do Peso Tributável (Físico vs Cúbico)")
+    void quandoPesoFisicoOuCubicoMaior_entaoAplicaFreteSobreMaior(String peso, String c, String l, String a, String totalEsperado, String cenario) {
+        Produto produto = TestUtils.produto(
+                "Produto de teste",
+                "50.00",
+                peso,
+                c, l, a,
+                false,
+                TipoProduto.ELETRONICO
+        );
+
+        ItemCompra i = TestUtils.item(produto, 1);
+        CarrinhoDeCompras carrinho = TestUtils.carrinho(i);
+
+        BigDecimal total = compraService.calcularCustoTotal(carrinho, Regiao.SUDESTE, TipoCliente.BRONZE);
+
+        assertThat(total).as(cenario).isEqualByComparingTo(totalEsperado);
     }
 
     @Test
