@@ -145,6 +145,14 @@ public class CompraService {
 			if (item.getProduto().getPreco() == null || item.getProduto().getPreco().compareTo(BigDecimal.ZERO) < 0) {
 				throw new IllegalArgumentException("Preço inválido no produto: " + item.getProduto().getNome());
 			}
+
+            Produto p = item.getProduto();
+            if (p.getComprimento() == null || p.getLargura() == null || p.getAltura() == null ||
+                    p.getComprimento().compareTo(BigDecimal.ZERO) <= 0 ||
+                    p.getLargura().compareTo(BigDecimal.ZERO) <= 0 ||
+                    p.getAltura().compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException("Dimensões inválidas (devem ser > 0) no produto: " + p.getNome());
+            }
 		}
 	}
 	

@@ -408,4 +408,41 @@ public class  CompraServiceParticoesTest {
                 .as("Mensagem de erro deve bater com a implementação")
                 .isEqualTo("Carrinho não pode estar vazio");
     }
+
+    /**
+     * Teste de Robustez P5: Dimensões negativas ou zero
+     * Verifica se o sistema lança uma exceção quando C, L ou A são <= 0.
+     */
+    @ParameterizedTest(name = "Robustez P5: C={1}, L={2}, A={3} (inválido)")
+    @CsvSource({
+            "'-10', '10',  '10'", // Comprimento negativo
+            "'10',  '-10', '10'", // Largura negativa
+            "'10',  '10',  '-10'",// Altura negativa
+            "'10',  '10',  '0'"   // Altura zero
+    })
+    @DisplayName("Robustez P5: Lança exceção se Dimensão for negativa ou zero")
+    void quandoItemComDimensaoInvalida_entaoLancaExcecao(String c, String l, String a) {
+
+        String nomeProdutoInvalido = "Produto Dimensão Inválida";
+        Produto p = TestUtils.produto(
+                nomeProdutoInvalido,
+                "100.00",
+                "1.0",
+                c, l, a,
+                false,
+                TipoProduto.ELETRONICO
+        );
+
+        CarrinhoDeCompras carrinho = TestUtils.carrinho(TestUtils.item(p, 1));
+        Regiao regiao = Regiao.SUDESTE;
+        TipoCliente cliente = TipoCliente.BRONZE;
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            compraService.calcularCustoTotal(carrinho, regiao, cliente);
+        }, "Deveria lançar exceção para dimensão <= 0");
+
+        assertThat(exception.getMessage())
+                .as("Mensagem de erro deve bater com a implementação")
+                .isEqualTo("Dimensões inválidas (devem ser > 0) no produto: " + nomeProdutoInvalido);
+    }
 }
