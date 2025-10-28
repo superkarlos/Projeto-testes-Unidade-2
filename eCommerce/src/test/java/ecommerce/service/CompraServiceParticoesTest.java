@@ -366,4 +366,46 @@ public class  CompraServiceParticoesTest {
                 .as("Mensagem de erro deve bater com a implementação")
                 .isEqualTo("Tipo de cliente não pode ser nulo");
     }
+
+    /**
+     * Teste de Robustez P4a: Carrinho nulo
+     * Verifica se o sistema lança uma exceção quando o CarrinhoDeCompras é nulo.
+     */
+    @Test
+    @DisplayName("Robustez P4a: Lança exceção se Carrinho for nulo")
+    void quandoCarrinhoNulo_entaoLancaExcecao() {
+
+        Regiao regiao = Regiao.SUDESTE;
+        TipoCliente cliente = TipoCliente.BRONZE;
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            compraService.calcularCustoTotal(null, regiao, cliente);
+        }, "Deveria lançar exceção para carrinho nulo");
+
+        assertThat(exception.getMessage())
+                .as("Mensagem de erro deve bater com a implementação")
+                .isEqualTo("Carrinho não pode ser nulo");
+    }
+
+    /**
+     * Teste de Robustez P4b: Carrinho vazio
+     * Verifica se o sistema lança uma exceção quando o CarrinhoDeCompras
+     * não contém itens.
+     */
+    @Test
+    @DisplayName("Robustez P4b: Lança exceção se Carrinho estiver vazio")
+    void quandoCarrinhoVazio_entaoLancaExcecao() {
+
+        CarrinhoDeCompras carrinhoVazio = TestUtils.carrinho();
+        Regiao regiao = Regiao.SUDESTE;
+        TipoCliente cliente = TipoCliente.BRONZE;
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            compraService.calcularCustoTotal(carrinhoVazio, regiao, cliente);
+        }, "Deveria lançar exceção para carrinho vazio");
+
+        assertThat(exception.getMessage())
+                .as("Mensagem de erro deve bater com a implementação")
+                .isEqualTo("Carrinho não pode estar vazio");
+    }
 }

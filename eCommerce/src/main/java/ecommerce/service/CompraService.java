@@ -121,6 +121,9 @@ public class CompraService {
 		if (carrinho == null) {
 			throw new IllegalArgumentException("Carrinho não pode ser nulo");
 		}
+        if (carrinho.getItens() == null || carrinho.getItens().isEmpty()) {
+            throw new IllegalArgumentException("Carrinho não pode estar vazio");
+        }
 		if (regiao == null) {
 			throw new IllegalArgumentException("Região não pode ser nula");
 		}
