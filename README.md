@@ -1,4 +1,4 @@
-# Projeto: JoséCarlos-LucasEmanoel
+# Projeto: JoséCarlos-LucasEmanuel
 
 Funcionalidade: Finalização de Compra
 
@@ -7,7 +7,7 @@ compra (CompraService.calcularCustoTotal) de forma isolada, utilizando Java 17, 
 
 Autores
 - José Carlos da Silva
-- Lucas Emanoel
+- Lucas Emanuel Ribeiro Costa
 
 ## Descrição da Funcionalidade
 
