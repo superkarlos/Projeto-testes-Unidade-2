@@ -415,10 +415,10 @@ public class  CompraServiceParticoesTest {
      */
     @ParameterizedTest(name = "Robustez P5: C={1}, L={2}, A={3} (inválido)")
     @CsvSource({
-            "'-10', '10',  '10'", // Comprimento negativo
-            "'10',  '-10', '10'", // Largura negativa
-            "'10',  '10',  '-10'",// Altura negativa
-            "'10',  '10',  '0'"   // Altura zero
+            "'-10', '10',  '10'",
+            "'10',  '-10', '10'",
+            "'10',  '10',  '-10'",
+            "'10',  '10',  '0'"
     })
     @DisplayName("Robustez P5: Lança exceção se Dimensão for negativa ou zero")
     void quandoItemComDimensaoInvalida_entaoLancaExcecao(String c, String l, String a) {
@@ -444,5 +444,38 @@ public class  CompraServiceParticoesTest {
         assertThat(exception.getMessage())
                 .as("Mensagem de erro deve bater com a implementação")
                 .isEqualTo("Dimensões inválidas (devem ser > 0) no produto: " + nomeProdutoInvalido);
+    }
+
+    /**
+     * Teste de Robustez P6: Peso físico negativo ou zero
+     * Verifica se o sistema lança uma exceção quando o peso é <= 0.
+     */
+    @ParameterizedTest(name = "Robustez P6: Peso = {0} (inválido)")
+    @ValueSource(strings = {"0.0", "-1.0"})
+    @DisplayName("Robustez P6: Lança exceção se Peso for negativo ou zero")
+    void quandoItemComPesoInvalido_entaoLancaExcecao(String pesoInvalido) {
+
+        // Arrange
+        String nomeProdutoInvalido = "Produto Peso Inválido";
+        Produto p = TestUtils.produto(
+                nomeProdutoInvalido,
+                "100.00",
+                pesoInvalido,
+                "10", "10", "10",
+                false,
+                TipoProduto.ELETRONICO
+        );
+
+        CarrinhoDeCompras carrinho = TestUtils.carrinho(TestUtils.item(p, 1));
+        Regiao regiao = Regiao.SUDESTE;
+        TipoCliente cliente = TipoCliente.BRONZE;
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            compraService.calcularCustoTotal(carrinho, regiao, cliente);
+        }, "Deveria lançar exceção para peso <= 0");
+
+        assertThat(exception.getMessage())
+                .as("Mensagem de erro deve bater com a implementação")
+                .isEqualTo("Peso físico inválido (deve ser > 0) no produto: " + nomeProdutoInvalido);
     }
 }

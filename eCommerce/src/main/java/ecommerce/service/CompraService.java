@@ -84,9 +84,6 @@ public class CompraService {
 		validarEntradas(carrinho, regiao, tipoCliente);
 	
 		List<ItemCompra> itensCarrinho = carrinho.getItens();
-		if (itensCarrinho == null || itensCarrinho.isEmpty()) {
-			return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
-		}
 	
 		validarItens(itensCarrinho);
 	
@@ -152,6 +149,10 @@ public class CompraService {
                     p.getLargura().compareTo(BigDecimal.ZERO) <= 0 ||
                     p.getAltura().compareTo(BigDecimal.ZERO) <= 0) {
                 throw new IllegalArgumentException("Dimensões inválidas (devem ser > 0) no produto: " + p.getNome());
+            }
+
+            if (p.getPesoFisico() == null || p.getPesoFisico().compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException("Peso físico inválido (deve ser > 0) no produto: " + p.getNome());
             }
 		}
 	}

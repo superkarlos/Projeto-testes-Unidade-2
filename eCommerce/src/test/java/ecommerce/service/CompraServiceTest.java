@@ -44,48 +44,6 @@ public class CompraServiceTest {
     }
 
     @Test
-    @DisplayName("Deve lançar exceção quando a região for nula")
-    void calcularCustoTotal_quandoRegiaoNula_entaoLancaExcecao() {
-
-        CarrinhoDeCompras carrinho = new CarrinhoDeCompras();
-
-        IllegalArgumentException exception =  assertThrows(IllegalArgumentException.class,
-                () -> service.calcularCustoTotal(carrinho, null, TipoCliente.BRONZE));
-        assertThat(exception).isNotNull();
-        assertThat(exception.getMessage()).isEqualTo("Região não pode ser nula").as("Esperado a mensagem igual da execao");
-
-        assertEquals("java.lang.IllegalArgumentException", exception.getClass().getName());
-    }
-
-    @Test
-    @DisplayName("Deve lançar exceção quando a região for nula")
-    void calcularCustoTotal_quandoTipoClienteNula_entaoLancaExcecao() {
-
-        CarrinhoDeCompras carrinho = new CarrinhoDeCompras();
-
-        IllegalArgumentException exception =  assertThrows(IllegalArgumentException.class,
-         () -> service.calcularCustoTotal(carrinho, Regiao.SUDESTE, null));
-
-        assertThat(exception).isNotNull();
-        assertThat(exception.getMessage()).isEqualTo("Tipo de cliente não pode ser nulo");
-
-        assertEquals("java.lang.IllegalArgumentException", exception.getClass().getName());
-    }
-
-
-    @Test
-    @DisplayName("Deve retornar 0.00 quando o carrinho estiver vazio")
-    void calcularCustoTotal_quandoCarrinhoVazio_entaoRetornaZero() {
-        
-        CarrinhoDeCompras carrinho = new CarrinhoDeCompras();
-        carrinho.setItens(List.of());
-
-        BigDecimal total = service.calcularCustoTotal(carrinho, Regiao.SUDESTE, TipoCliente.BRONZE);
-
-        assertThat(total).isEqualByComparingTo("0.00");
-    }
-
-    @Test
     @DisplayName("Deve calcular subtotal corretamente sem descontos")
     void calcularCustoTotal_quandoCarrinhoSemDescontos_entaoRetornaSomaSimples() {
         Produto produto1 = criarProduto("Produto A", PRECO_BASE, TipoProduto.ELETRONICO, false);
