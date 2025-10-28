@@ -25,6 +25,17 @@ public class TestUtils {
         return p;
     }
 
+    public static Produto produtoPadrao() {
+        return produto(
+                "Produto Padrão",
+                "100.00",
+                "1.0",
+                "1", "1", "1",
+                false,
+                TipoProduto.ELETRONICO
+        );
+    }
+
     public static ItemCompra item(Produto p, long qtd) {
         ItemCompra i = new ItemCompra();
         i.setProduto(p);

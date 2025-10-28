@@ -14,10 +14,12 @@ import ecommerce.util.TestUtils;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvFileSource;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.math.BigDecimal;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class  CompraServiceParticoesTest {
 
@@ -283,5 +285,32 @@ public class  CompraServiceParticoesTest {
         BigDecimal total = compraService.calcularCustoTotal(carrinho, Regiao.SUDESTE, tipoClienteEnum);
 
         assertThat(total).as(cenario).isEqualByComparingTo(totalEsperado);
+    }
+
+    // --- TESTES DE ROBUSTEZ ---
+
+    /**
+     * Teste de Robustez P1: Quantidade <= 0
+     * Verifica se o sistema lança uma exceção quando a quantidade
+     * de um item no carrinho é zero ou negativa.
+     */
+    @ParameterizedTest(name = "Robustez P1: Quantidade = {0} (inválida)")
+    @ValueSource(ints = {0, -1})
+    @DisplayName("Robustez P1: Lança exceção se Quantidade for zero ou negativa")
+    void quandoItemComQuantidadeInvalida_entaoLancaExcecao(int quantidadeInvalida) {
+        Produto p = TestUtils.produtoPadrao();
+        ItemCompra itemInvalido = TestUtils.item(p, quantidadeInvalida);
+        CarrinhoDeCompras carrinho = TestUtils.carrinho(itemInvalido);
+
+        Regiao regiao = Regiao.SUDESTE;
+        TipoCliente cliente = TipoCliente.BRONZE;
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            compraService.calcularCustoTotal(carrinho, regiao, cliente);
+        }, "Deveria lançar exceção para quantidade <= 0");
+
+        String nomeProduto = p.getNome();
+        assertThat(exception.getMessage()).as("Mensagem de erro deve ser clara")
+                .contains("Quantidade inválida no produto: " + nomeProduto);
     }
 }

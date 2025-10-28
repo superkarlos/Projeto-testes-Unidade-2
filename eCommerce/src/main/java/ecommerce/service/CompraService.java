@@ -135,7 +135,7 @@ public class CompraService {
 				throw new IllegalArgumentException("Item de compra ou produto não pode ser nulo");
 			}
 	
-			if (item.getQuantidade() == null || item.getQuantidade() < 0) {
+			if (item.getQuantidade() == null || item.getQuantidade() <= 0) {
 				throw new IllegalArgumentException("Quantidade inválida no produto: " + item.getProduto().getNome());
 			}
 	

@@ -37,7 +37,7 @@ public class CompraServiceLimitesTest {
             resources = "/ecommerce/service/limites_peso_tributavel.csv",
             numLinesToSkip = 1
     )
-    @DisplayName("Partições: Cálculo do Peso Tributável (Físico vs Cúbico)")
+    @DisplayName("Limites: Cálculo do Peso Tributável (Físico vs Cúbico)")
     void quandoPesoFisicoOuCubicoMaior_entaoAplicaFreteSobreMaior(String peso, String c, String l, String a, String totalEsperado, String cenario) {
         Produto produto = TestUtils.produto(
                 "Produto de teste",
@@ -63,10 +63,10 @@ public class CompraServiceLimitesTest {
      * - O peso é mantido em 0.5kg (isento) para não adicionar frete.
      * - Cliente BRONZE e Região SUDESTE são usados para não alterar o frete.
      */
-    @ParameterizedTest(name = "[{index}] {3}") // Usa a 4ª coluna (cenario)
+    @ParameterizedTest(name = "[{index}] {3}")
     @CsvFileSource(
             resources = "/ecommerce/service/limites_desconto_itens.csv",
-            numLinesToSkip = 1 // Pula a linha de cabeçalho
+            numLinesToSkip = 1
     )
     @DisplayName("Partições: Desconto por Múltiplos Itens")
     void quandoQuantidadeItensMesmoTipoVaria_entaoAplicaDescontoCorreto(
