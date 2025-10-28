@@ -58,6 +58,38 @@ public class CompraServiceParticoesTest {
         assertThat(total).as(cenario).isEqualByComparingTo(totalEsperado);
     }
 
+    /**
+     * Testa as partições de desconto por quantidade de itens do MESMO TIPO.
+     * Para isolar esta regra:
+     * - O subtotal é mantido abaixo de R$ 500,00 para não ativar o desconto por valor.
+     * - O peso é mantido em 1kg (isento) para não adicionar frete.
+     * - Cliente BRONZE e Região SUDESTE são usados para não alterar o frete.
+     */
+    @ParameterizedTest(name = "[{index}] {3}") // Usa a 4ª coluna (cenario)
+    @CsvFileSource(
+            resources = "/ecommerce/service/particoes_desconto_itens.csv",
+            numLinesToSkip = 1 // Pula a linha de cabeçalho
+    )
+    @DisplayName("Partições: Desconto por Múltiplos Itens")
+    void quandoQuantidadeItensMesmoTipoVaria_entaoAplicaDescontoCorreto(
+            int quantidade, String precoUnitario, String totalEsperado, String cenario) {
+
+        Produto p = TestUtils.produto(
+                "Produto de teste",
+                precoUnitario,
+                "0.5",
+                "1", "1", "1",
+                false,
+                TipoProduto.ELETRONICO
+        );
+
+        ItemCompra i = TestUtils.item(p, quantidade);
+        CarrinhoDeCompras carrinho = TestUtils.carrinho(i);
+
+        BigDecimal total = compraService.calcularCustoTotal(carrinho, Regiao.SUDESTE, TipoCliente.BRONZE);
+
+        assertThat(total).as(cenario).isEqualByComparingTo(totalEsperado);
+    }
     @Test
     @DisplayName("Partição: peso <= 5 => frete isento")
     void quandoPesoMenorOuIgual5_entaoFreteIsento() {
