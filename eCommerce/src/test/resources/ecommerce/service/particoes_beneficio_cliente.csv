@@ -1,0 +1,4 @@
+tipoCliente,totalEsperado,cenario
+OURO,50.00,"P1 (Ouro 100%): Subtotal R$ 50 + Frete R$ 0.00"
+PRATA,62.00,"P2 (Prata 50%): Subtotal R$ 50 + Frete R$ 12.00"
+BRONZE,74.00,"P3 (Bronze 0%): Subtotal R$ 50 + Frete R$ 24.00"

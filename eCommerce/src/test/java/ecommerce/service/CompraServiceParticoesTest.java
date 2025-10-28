@@ -199,8 +199,7 @@ public class  CompraServiceParticoesTest {
             numLinesToSkip = 1
     )
     @DisplayName("Partições: Taxa de Manuseio (Item Frágil)")
-    void quandoItemFragil_entaoAplicaTaxaManuseio(
-            boolean isFragil, int quantidade, String pesoProduto, String subtotalProduto, String totalEsperado, String cenario) {
+    void quandoItemFragil_entaoAplicaTaxaManuseio(boolean isFragil, int quantidade, String pesoProduto, String subtotalProduto, String totalEsperado, String cenario) {
 
         Produto p = TestUtils.produto(
                 "Produto Teste Frágil",
@@ -232,8 +231,7 @@ public class  CompraServiceParticoesTest {
             numLinesToSkip = 1
     )
     @DisplayName("Partições: Multiplicador de Frete por Região")
-    void quandoRegiaoVaria_entaoAplicaMultiplicadorFrete(
-            String regiao, String totalEsperado, String cenario) {
+    void quandoRegiaoVaria_entaoAplicaMultiplicadorFrete(String regiao, String totalEsperado, String cenario) {
 
         Regiao regiaoEnum = Regiao.valueOf(regiao);
 
@@ -250,6 +248,39 @@ public class  CompraServiceParticoesTest {
         CarrinhoDeCompras carrinho = TestUtils.carrinho(i);
 
         BigDecimal total = compraService.calcularCustoTotal(carrinho, regiaoEnum, TipoCliente.BRONZE);
+
+        assertThat(total).as(cenario).isEqualByComparingTo(totalEsperado);
+    }
+
+    /**
+     * Testa as partições do Benefício de Nível do Cliente sobre o frete.
+     * P1-P3: Ouro (100%), Prata (50%), Bronze (0%) .
+     * - Para isolar, usamos um frete base fixo de R$ 24,00 (Peso 6kg, Região SUDESTE).
+     * - Subtotal abaixo de R$ 500.
+     */
+    @ParameterizedTest(name = "[{index}] {2}")
+    @CsvFileSource(
+            resources = "/ecommerce/service/particoes_beneficio_cliente.csv",
+            numLinesToSkip = 1
+    )
+    @DisplayName("Partições: Benefício de Nível do Cliente (Desconto Frete)")
+    void quandoNivelClienteVaria_entaoAplicaDescontoFrete(String tipoCliente, String totalEsperado, String cenario) {
+
+        TipoCliente tipoClienteEnum = TipoCliente.valueOf(tipoCliente);
+
+        Produto p = TestUtils.produto(
+                "Produto Teste Cliente",
+                "50.00",
+                "6.0",
+                "1", "1", "1",
+                false,
+                TipoProduto.ELETRONICO
+        );
+
+        ItemCompra i = TestUtils.item(p, 1);
+        CarrinhoDeCompras carrinho = TestUtils.carrinho(i);
+
+        BigDecimal total = compraService.calcularCustoTotal(carrinho, Regiao.SUDESTE, tipoClienteEnum);
 
         assertThat(total).as(cenario).isEqualByComparingTo(totalEsperado);
     }
