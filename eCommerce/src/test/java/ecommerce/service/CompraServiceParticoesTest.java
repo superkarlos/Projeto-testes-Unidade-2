@@ -166,8 +166,7 @@ public class  CompraServiceParticoesTest {
             numLinesToSkip = 1
     )
     @DisplayName("Partições: Taxa Mínima de Frete (R$ 12)")
-    void quandoFreteIsentoOuNao_entaoAplicaTaxaMinimaCorretamente(
-            String peso, String subtotal, String totalEsperado, String cenario) {
+    void quandoFreteIsentoOuNao_entaoAplicaTaxaMinimaCorretamente(String peso, String subtotal, String totalEsperado, String cenario) {
 
         Produto p = TestUtils.produto(
                 "Produto Teste Taxa",
@@ -182,6 +181,75 @@ public class  CompraServiceParticoesTest {
         CarrinhoDeCompras carrinho = TestUtils.carrinho(i);
 
         BigDecimal total = compraService.calcularCustoTotal(carrinho, Regiao.SUDESTE, TipoCliente.BRONZE);
+
+        assertThat(total).as(cenario).isEqualByComparingTo(totalEsperado);
+    }
+
+    /**
+     * Testa as partições da Taxa de Manuseio (Item Frágil).
+     * P1: Item não frágil (sem taxa).
+     * P2: Item frágil (com taxa de R$ 5 * quantidade).
+     * * Para isolar:
+     * - Usamos um peso (2 * 3.0 = 6.0kg) para sair da faixa isenta e ter um frete base.
+     * - Cliente BRONZE e Região SUDESTE.
+     */
+    @ParameterizedTest(name = "[{index}] {5}") // Usa a 6ª coluna (cenario)
+    @CsvFileSource(
+            resources = "/ecommerce/service/particoes_frete_taxa_manuseio.csv",
+            numLinesToSkip = 1
+    )
+    @DisplayName("Partições: Taxa de Manuseio (Item Frágil)")
+    void quandoItemFragil_entaoAplicaTaxaManuseio(
+            boolean isFragil, int quantidade, String pesoProduto, String subtotalProduto, String totalEsperado, String cenario) {
+
+        Produto p = TestUtils.produto(
+                "Produto Teste Frágil",
+                subtotalProduto,
+                pesoProduto,
+                "1", "1", "1",
+                isFragil,
+                TipoProduto.ELETRONICO
+        );
+
+        ItemCompra i = TestUtils.item(p, quantidade);
+        CarrinhoDeCompras carrinho = TestUtils.carrinho(i);
+
+        BigDecimal total = compraService.calcularCustoTotal(carrinho, Regiao.SUDESTE, TipoCliente.BRONZE);
+
+        assertThat(total).as(cenario).isEqualByComparingTo(totalEsperado);
+    }
+
+    /**
+     * Testa as partições do Multiplicador de Frete por Região.
+     * P1-P5: Cada uma das 5 regiões do enum.
+     * - Para isolar, usamos um frete base fixo de R$ 24,00.
+     * - (Peso 6kg = R$ 12 frete + R$ 12 taxa)
+     * - Cliente BRONZE e subtotal < R$ 500.
+     */
+    @ParameterizedTest(name = "[{index}] {2}")
+    @CsvFileSource(
+            resources = "/ecommerce/service/particoes_frete_regiao.csv",
+            numLinesToSkip = 1
+    )
+    @DisplayName("Partições: Multiplicador de Frete por Região")
+    void quandoRegiaoVaria_entaoAplicaMultiplicadorFrete(
+            String regiao, String totalEsperado, String cenario) {
+
+        Regiao regiaoEnum = Regiao.valueOf(regiao);
+
+        Produto p = TestUtils.produto(
+                "Produto Teste Região",
+                "50.00",
+                "6.0",
+                "1", "1", "1",
+                false,
+                TipoProduto.ELETRONICO
+        );
+
+        ItemCompra i = TestUtils.item(p, 1);
+        CarrinhoDeCompras carrinho = TestUtils.carrinho(i);
+
+        BigDecimal total = compraService.calcularCustoTotal(carrinho, regiaoEnum, TipoCliente.BRONZE);
 
         assertThat(total).as(cenario).isEqualByComparingTo(totalEsperado);
     }

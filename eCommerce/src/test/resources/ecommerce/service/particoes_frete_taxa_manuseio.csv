@@ -1,0 +1,3 @@
+isFragil,quantidade,pesoProduto,subtotalProduto,totalEsperado,cenario
+false,2,3.0,50.00,124.00,"P1 (Não Frágil): Sem taxa de manuseio"
+true,2,3.0,50.00,134.00,"P2 (Frágil): Com taxa de manuseio (R$ 5 * 2)"

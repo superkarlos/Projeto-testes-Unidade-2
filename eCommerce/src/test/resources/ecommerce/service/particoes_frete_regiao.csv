@@ -1,0 +1,6 @@
+regiao,totalEsperado,cenario
+SUDESTE,74.00,"P1 (Sudeste x1.00): Subtotal R$ 50 + Frete R$ 24.00"
+SUL,75.20,"P2 (Sul x1.05): Subtotal R$ 50 + Frete R$ 25.20"
+NORDESTE,76.40,"P3 (Nordeste x1.10): Subtotal R$ 50 + Frete R$ 26.40"
+CENTRO_OESTE,78.80,"P4 (Centro-Oeste x1.20): Subtotal R$ 50 + Frete R$ 28.80"
+NORTE,81.20,"P5 (Norte x1.30): Subtotal R$ 50 + Frete R$ 31.20"
