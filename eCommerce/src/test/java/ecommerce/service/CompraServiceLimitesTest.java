@@ -2,8 +2,6 @@ package ecommerce.service;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-
 import ecommerce.entity.CarrinhoDeCompras;
 import ecommerce.entity.ItemCompra;
 import ecommerce.entity.Produto;

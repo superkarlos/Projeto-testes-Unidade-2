@@ -593,20 +593,19 @@ public class CompraServiceParticoesTest {
                 i2.setQuantidade(3L);
 
                 List<ItemCompra> itens = Arrays.asList(i1, i2);
-
                 BigDecimal subtotal = compraService.calcularSubtotal(itens);
 
                 // subtotal = (10*2) + (20*3) = 20 + 60 = 80
                 assertThat(subtotal).isEqualByComparingTo(new BigDecimal("80"));
         }
 
-        // --- Fonte de dados para o teste ---
+
         static Stream<ItemCompra> fornecerItensNulos() {
                 Produto produtoValido = TestUtils.produtoPadrao();
 
                 return Stream.of(
-                                null, // ItemCompra nulo
-                                TestUtils.item(null, 1) // Produto nulo dentro do ItemCompra
+                                null,
+                                TestUtils.item(null, 1) 
                 );
         }
 

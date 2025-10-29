@@ -8,7 +8,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import ecommerce.dto.CompraDTO;
 import ecommerce.dto.DisponibilidadeDTO;
 import ecommerce.dto.EstoqueBaixaDTO;
@@ -22,7 +21,6 @@ import ecommerce.entity.TipoCliente;
 import ecommerce.entity.TipoProduto;
 import ecommerce.external.IEstoqueExternal;
 import ecommerce.external.IPagamentoExternal;
-import ecommerce.service.util.MetodosAuxilar;
 import jakarta.transaction.Transactional;
 
 @Service
@@ -43,7 +41,7 @@ public class CompraService {
 		this.pagamentoExternal = pagamentoExternal;
 	}
 
-	/* @Transactional
+	 @Transactional
 	public CompraDTO finalizarCompra(Long carrinhoId, Long clienteId) {
 
 		Cliente cliente = clienteService.buscarPorId(clienteId);
@@ -77,43 +75,30 @@ public class CompraService {
 		CompraDTO compraDTO = new CompraDTO(true, pagamento.transacaoId(), "Compra finalizada com sucesso.");
 
 		return compraDTO;
-	} */
+	} 
     
 	public BigDecimal calcularCustoTotal(CarrinhoDeCompras carrinho, Regiao regiao, TipoCliente tipoCliente) {
 
 		validarEntradas(carrinho, regiao, tipoCliente);
-	
 		List<ItemCompra> itensCarrinho = carrinho.getItens();
-	
 		validarItens(itensCarrinho);
 	
 		BigDecimal subtotalGeral = calcularSubtotal(itensCarrinho);
-
 		BigDecimal descontoPorTipo = calcularDescontoPorTipo(itensCarrinho);
-
 		BigDecimal subtotalComDescontoPorTipo = subtotalGeral.subtract(descontoPorTipo);
-	
 		BigDecimal descontoPorValorTotal = calcularDescontoPorValor(subtotalComDescontoPorTipo);
-
 		BigDecimal subtotalFinal = subtotalComDescontoPorTipo.subtract(descontoPorValorTotal);
-	
 		BigDecimal pesoTotal = calcularPesoTotal(itensCarrinho);
-
 		BigDecimal valorFrete = calcularFrete(pesoTotal);
-	
 		BigDecimal taxaFragilidade = calcularTaxaDeProdutosFrageis(itensCarrinho);
-
 		valorFrete = valorFrete.add(taxaFragilidade);
-	
 		BigDecimal freteComMultiplicador = aplicarMultiplicadorDeRegiao(valorFrete, regiao);
-
 		BigDecimal freteFinal = aplicarDescontoPorTipoCliente(freteComMultiplicador, tipoCliente);
 	
 		return subtotalFinal.add(freteFinal).setScale(2, RoundingMode.HALF_UP);
 	}
 	
 
-	//==============================================================================================  
 	private void validarEntradas(CarrinhoDeCompras carrinho, Regiao regiao, TipoCliente tipoCliente) {
 		if (carrinho == null) {
 			throw new IllegalArgumentException("Carrinho não pode ser nulo");
@@ -158,6 +143,7 @@ public class CompraService {
 	}
 	
 	public BigDecimal calcularSubtotal(List<ItemCompra> itensCarrinho) {
+
 		BigDecimal subtotal = BigDecimal.ZERO;
 	
 		for (ItemCompra item : itensCarrinho) {
@@ -171,6 +157,7 @@ public class CompraService {
 	}
 	
 	private BigDecimal calcularDescontoPorTipo(List<ItemCompra> itensCarrinho) {
+
 		Map<TipoProduto, Long> quantidadePorTipo = new HashMap<>();
 	
 		for (ItemCompra item : itensCarrinho) {
@@ -237,10 +224,8 @@ public class CompraService {
 			BigDecimal comprimento = produto.getComprimento() == null ? BigDecimal.ZERO : produto.getComprimento();
 			BigDecimal largura = produto.getLargura() == null ? BigDecimal.ZERO : produto.getLargura();
 			BigDecimal altura = produto.getAltura() == null ? BigDecimal.ZERO : produto.getAltura();
-	
-			BigDecimal pesoCubico = comprimento.multiply(largura).multiply(altura)
-					.divide(new BigDecimal("6000"), 10, RoundingMode.HALF_UP);
-	
+			BigDecimal pesoCubico = comprimento.multiply(largura).multiply(altura).divide(new BigDecimal("6000"), 
+			10, RoundingMode.HALF_UP);
 			BigDecimal pesoTributavel = pesoFisico.max(pesoCubico);
 			BigDecimal quantidade = BigDecimal.valueOf(item.getQuantidade() == null ? 0L : item.getQuantidade());
 	
