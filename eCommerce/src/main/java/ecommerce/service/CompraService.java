@@ -41,41 +41,41 @@ public class CompraService {
 		this.pagamentoExternal = pagamentoExternal;
 	}
 
-	 @Transactional
-	public CompraDTO finalizarCompra(Long carrinhoId, Long clienteId) {
+	//  @Transactional
+	// public CompraDTO finalizarCompra(Long carrinhoId, Long clienteId) {
 
-		Cliente cliente = clienteService.buscarPorId(clienteId);
-		CarrinhoDeCompras carrinho = carrinhoService.buscarPorCarrinhoIdEClienteId(carrinhoId, cliente);
+	// 	Cliente cliente = clienteService.buscarPorId(clienteId);
+	// 	CarrinhoDeCompras carrinho = carrinhoService.buscarPorCarrinhoIdEClienteId(carrinhoId, cliente);
 
-		List<Long> produtosIds = carrinho.getItens().stream().map(i -> i.getProduto().getId())
-				.collect(Collectors.toList());
-		List<Long> produtosQtds = carrinho.getItens().stream().map(i -> i.getQuantidade()).collect(Collectors.toList());
+	// 	List<Long> produtosIds = carrinho.getItens().stream().map(i -> i.getProduto().getId())
+	// 			.collect(Collectors.toList());
+	// 	List<Long> produtosQtds = carrinho.getItens().stream().map(i -> i.getQuantidade()).collect(Collectors.toList());
 
-		DisponibilidadeDTO disponibilidade = estoqueExternal.verificarDisponibilidade(produtosIds, produtosQtds);
+	// 	DisponibilidadeDTO disponibilidade = estoqueExternal.verificarDisponibilidade(produtosIds, produtosQtds);
 
-		if (!disponibilidade.disponivel()) {
-			throw new IllegalStateException("Itens fora de estoque.");
-		}
+	// 	if (!disponibilidade.disponivel()) {
+	// 		throw new IllegalStateException("Itens fora de estoque.");
+	// 	}
 
-		BigDecimal custoTotal = calcularCustoTotal(carrinho, cliente.getRegiao(), cliente.getTipo());
+	// 	BigDecimal custoTotal = calcularCustoTotal(carrinho, cliente.getRegiao(), cliente.getTipo());
 
-		PagamentoDTO pagamento = pagamentoExternal.autorizarPagamento(cliente.getId(), custoTotal.doubleValue());
+	// 	PagamentoDTO pagamento = pagamentoExternal.autorizarPagamento(cliente.getId(), custoTotal.doubleValue());
 
-		if (!pagamento.autorizado()) {
-			throw new IllegalStateException("Pagamento não autorizado.");
-		}
+	// 	if (!pagamento.autorizado()) {
+	// 		throw new IllegalStateException("Pagamento não autorizado.");
+	// 	}
 
-		EstoqueBaixaDTO baixaDTO = estoqueExternal.darBaixa(produtosIds, produtosQtds);
+	// 	EstoqueBaixaDTO baixaDTO = estoqueExternal.darBaixa(produtosIds, produtosQtds);
 
-		if (!baixaDTO.sucesso()) {
-			pagamentoExternal.cancelarPagamento(cliente.getId(), pagamento.transacaoId());
-			throw new IllegalStateException("Erro ao dar baixa no estoque.");
-		}
+	// 	if (!baixaDTO.sucesso()) {
+	// 		pagamentoExternal.cancelarPagamento(cliente.getId(), pagamento.transacaoId());
+	// 		throw new IllegalStateException("Erro ao dar baixa no estoque.");
+	// 	}
 
-		CompraDTO compraDTO = new CompraDTO(true, pagamento.transacaoId(), "Compra finalizada com sucesso.");
+	// 	CompraDTO compraDTO = new CompraDTO(true, pagamento.transacaoId(), "Compra finalizada com sucesso.");
 
-		return compraDTO;
-	} 
+	// 	return compraDTO;
+	// } 
     
 	public BigDecimal calcularCustoTotal(CarrinhoDeCompras carrinho, Regiao regiao, TipoCliente tipoCliente) {
 
@@ -278,21 +278,20 @@ public class CompraService {
 		
 	
 	private BigDecimal getMultiplicadorPorRegiao(Regiao regiao) {
-		switch (regiao) {
-			case SUDESTE:
-				return new BigDecimal("1.00");
-			case SUL:
+   
+			if (regiao == Regiao.SUL) {
 				return new BigDecimal("1.05");
-			case NORDESTE:
+			} else if (regiao == Regiao.NORDESTE) {
 				return new BigDecimal("1.10");
-			case CENTRO_OESTE:
+			} else if (regiao == Regiao.CENTRO_OESTE) {
 				return new BigDecimal("1.20");
-			case NORTE:
+			} else if (regiao == Regiao.NORTE) {
 				return new BigDecimal("1.30");
-			default:
-				return new BigDecimal("1.00");
-		}
-	}
+			} else {
+				return new BigDecimal("1.00"); // por padeão ele retorna 1.00 no caso SUDESTE
+			} 
+    }
+
     
 	
     

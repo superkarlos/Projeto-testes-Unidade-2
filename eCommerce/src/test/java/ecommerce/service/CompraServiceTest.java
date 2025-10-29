@@ -153,6 +153,8 @@ public class CompraServiceTest {
                 .isGreaterThan(totalSudeste);
     }
 
+    
+
     private Produto criarProduto(String nome, BigDecimal preco, TipoProduto tipo, boolean fragil) {
         Produto p = new Produto();
         p.setNome(nome);
