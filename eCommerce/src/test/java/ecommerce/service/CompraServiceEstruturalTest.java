@@ -204,4 +204,30 @@ public class CompraServiceEstruturalTest {
                 .isEqualTo("Dimensões inválidas (devem ser > 0) no produto: " + nomeProduto);
     }
 
+    /**
+     * Teste de Caixa Branca: Cobertura de Ramo
+     * Cobre o ramo (produto.getTipo() != null) no método calcularDescontoPorTipo.
+     * O teste de robustez (P6=9) cobriu apenas (produto != null).
+     */
+    @Test
+    @DisplayName("Caixa Branca: Lança exceção se a Largura do produto for nula")
+    void quandoTipoProdutoNulo_entaoLancaExcecao() {
+
+        Produto p = TestUtils.produtoPadrao();
+        p.setLargura(null);
+        String nomeProduto = p.getNome();
+
+        ItemCompra item = TestUtils.item(p, 1);
+        CarrinhoDeCompras carrinho = TestUtils.carrinho(item);
+        Regiao regiao = Regiao.SUDESTE;
+        TipoCliente cliente = TipoCliente.BRONZE;
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            compraService.calcularCustoTotal(carrinho, regiao, cliente);
+        }, "Deveria lançar exceção para tipo de produto nulo");
+
+        assertThat(exception.getMessage())
+                .isEqualTo("Dimensões inválidas (devem ser > 0) no produto: " + nomeProduto);
+    }
+
 }

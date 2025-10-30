@@ -28,585 +28,502 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class CompraServiceParticoesTest {
 
-        private CompraService compraService;
-
-        @BeforeEach
-        void setup() {
-                compraService = new CompraService(null, null, null, null);
-        }
-
-        /**
-         * Testa as partições do Peso Tributável, que é max(físico, cúbico).
-         * Usamos um subtotal fixo de R$ 50,00 (sem desconto por valor).
-         * Usamos Regiao.SUDESTE (x1.0) e TipoCliente.BRONZE (sem desconto no frete)
-         * para isolar o cálculo do frete baseado apenas no peso.
-         */
-        @ParameterizedTest(name = "[{index}] {5}]")
-        @CsvFileSource(resources = "/ecommerce/service/particoes_peso_tributavel.csv", numLinesToSkip = 1)
-        @DisplayName("Partições: Cálculo do Peso Tributável (Físico vs Cúbico)")
-        void quandoPesoFisicoOuCubicoMaior_entaoAplicaFreteSobreMaior(String peso, String c, String l, String a,
-                        String totalEsperado, String cenario) {
-                Produto produto = TestUtils.produto(
-                                "Produto de teste",
-                                "50.00",
-                                peso,
-                                c, l, a,
-                                false,
-                                TipoProduto.ELETRONICO);
-
-                ItemCompra i = TestUtils.item(produto, 1);
-                CarrinhoDeCompras carrinho = TestUtils.carrinho(i);
-
-                BigDecimal total = compraService.calcularCustoTotal(carrinho, Regiao.SUDESTE, TipoCliente.BRONZE);
-
-                assertThat(total).as(cenario).isEqualByComparingTo(totalEsperado);
-        }
-
-        /**
-         * Testa as partições de desconto por quantidade de itens do MESMO TIPO.
-         * Para isolar esta regra:
-         * - O subtotal é mantido abaixo de R$ 500,00 para não ativar o desconto por
-         * valor.
-         * - O peso é mantido em 1kg (isento) para não adicionar frete.
-         * - Cliente BRONZE e Região SUDESTE são usados para não alterar o frete.
-         */
-        @ParameterizedTest(name = "[{index}] {3}")
-        @CsvFileSource(resources = "/ecommerce/service/particoes_desconto_itens.csv", numLinesToSkip = 1)
-        @DisplayName("Partições: Desconto por Múltiplos Itens")
-        void quandoQuantidadeItensMesmoTipoVaria_entaoAplicaDescontoCorreto(
-                        int quantidade, String precoUnitario, String totalEsperado, String cenario) {
-
-                Produto p = TestUtils.produto(
-                                "Produto de teste",
-                                precoUnitario,
-                                "0.5",
-                                "1", "1", "1",
-                                false,
-                                TipoProduto.ELETRONICO);
-
-                ItemCompra i = TestUtils.item(p, quantidade);
-                CarrinhoDeCompras carrinho = TestUtils.carrinho(i);
-
-                BigDecimal total = compraService.calcularCustoTotal(carrinho, Regiao.SUDESTE, TipoCliente.BRONZE);
-
-                assertThat(total).as(cenario).isEqualByComparingTo(totalEsperado);
-        }
-
-        /**
-         * Testa as partições de desconto por valor total do carrinho .
-         * Para isolar esta regra:
-         * - Usamos apenas 1 item para não ativar o desconto por múltiplos itens.
-         * - O peso é mantido em 0.5kg (isento) para não adicionar frete.
-         * - Cliente BRONZE e Região SUDESTE são usados para não alterar o frete.
-         */
-        @ParameterizedTest(name = "[{index}] {2}")
-        @CsvFileSource(resources = "/ecommerce/service/particoes_desconto_valor.csv", numLinesToSkip = 1)
-        @DisplayName("Partições: Desconto por Valor de Carrinho")
-        void quandoSubtotalVaria_entaoAplicaDescontoPorValorCorreto(String subtotal, String totalEsperado,
-                        String cenario) {
-                Produto produto = TestUtils.produto(
-                                "Tesde de produto caro",
-                                subtotal,
-                                "1",
-                                "1", "1", "1",
-                                false,
-                                TipoProduto.ELETRONICO);
-
-                ItemCompra i = TestUtils.item(produto, 1);
-                CarrinhoDeCompras carrinho = TestUtils.carrinho(i);
-
-                BigDecimal total = compraService.calcularCustoTotal(carrinho, Regiao.SUDESTE, TipoCliente.BRONZE);
-
-                assertThat(total).as(cenario).isEqualByComparingTo(totalEsperado);
-        }
-
-        /**
-         * Testa o cálculo de frete baseado nas faixas de peso total.
-         * Para isolar esta regra:
-         * - Usamos 1 item não-frágil.
-         * - Usamos Cliente BRONZE (sem desconto de frete).
-         * - Usamos Região SUDESTE (multiplicador 1.0x).
-         * - Subtotal abaixo de R$ 500 (sem desconto de valor).
-         */
-        @ParameterizedTest(name = "[{index}] {3}")
-        @CsvFileSource(resources = "/ecommerce/service/particoes_frete_peso.csv", numLinesToSkip = 1)
-        @DisplayName("Partições: Cálculo do Frete Base por Faixa de Peso")
-        void quandoPesoVaria_entaoAplicaFretePorFaixaCorreta(String peso, String subtotal, String totalEsperado,
-                        String cenario) {
-
-                Produto p = TestUtils.produto(
-                                "Produto Teste Peso",
-                                subtotal,
-                                peso,
-                                "1", "1", "1",
-                                false,
-                                TipoProduto.ELETRONICO);
-
-                ItemCompra i = TestUtils.item(p, 1);
-                CarrinhoDeCompras carrinho = TestUtils.carrinho(i);
-
-                BigDecimal total = compraService.calcularCustoTotal(carrinho, Regiao.SUDESTE, TipoCliente.BRONZE);
-
-                assertThat(total).as(cenario).isEqualByComparingTo(totalEsperado);
-        }
-
-        /**
-         * Testa as partições da Taxa Mínima de Frete (R$ 12,00).
-         * P1: Faixa isenta (sem taxa)
-         * P2: Faixa não isenta (com taxa)
-         */
-        @ParameterizedTest(name = "[{index}] {3}")
-        @CsvFileSource(resources = "/ecommerce/service/particoes_frete_taxa_minima.csv", numLinesToSkip = 1)
-        @DisplayName("Partições: Taxa Mínima de Frete (R$ 12)")
-        void quandoFreteIsentoOuNao_entaoAplicaTaxaMinimaCorretamente(String peso, String subtotal,
-                        String totalEsperado, String cenario) {
-
-                Produto p = TestUtils.produto(
-                                "Produto Teste Taxa",
-                                subtotal,
-                                peso,
-                                "1", "1", "1",
-                                false,
-                                TipoProduto.ELETRONICO);
-
-                ItemCompra i = TestUtils.item(p, 1);
-                CarrinhoDeCompras carrinho = TestUtils.carrinho(i);
-
-                BigDecimal total = compraService.calcularCustoTotal(carrinho, Regiao.SUDESTE, TipoCliente.BRONZE);
-
-                assertThat(total).as(cenario).isEqualByComparingTo(totalEsperado);
-        }
-
-        /**
-         * Testa as partições da Taxa de Manuseio (Item Frágil).
-         * P1: Item não frágil (sem taxa).
-         * P2: Item frágil (com taxa de R$ 5 * quantidade).
-         * * Para isolar:
-         * - Usamos um peso (2 * 3.0 = 6.0kg) para sair da faixa isenta e ter um frete
-         * base.
-         * - Cliente BRONZE e Região SUDESTE.
-         */
-        @ParameterizedTest(name = "[{index}] {5}")
-        @CsvFileSource(resources = "/ecommerce/service/particoes_frete_taxa_manuseio.csv", numLinesToSkip = 1)
-        @DisplayName("Partições: Taxa de Manuseio (Item Frágil)")
-        void quandoItemFragil_entaoAplicaTaxaManuseio(boolean isFragil, int quantidade, String pesoProduto,
-                        String subtotalProduto, String totalEsperado, String cenario) {
-
-                Produto p = TestUtils.produto(
-                                "Produto Teste Frágil",
-                                subtotalProduto,
-                                pesoProduto,
-                                "1", "1", "1",
-                                isFragil,
-                                TipoProduto.ELETRONICO);
-
-                ItemCompra i = TestUtils.item(p, quantidade);
-                CarrinhoDeCompras carrinho = TestUtils.carrinho(i);
-
-                BigDecimal total = compraService.calcularCustoTotal(carrinho, Regiao.SUDESTE, TipoCliente.BRONZE);
-
-                assertThat(total).as(cenario).isEqualByComparingTo(totalEsperado);
-        }
-
-        /**
-         * Testa as partições do Multiplicador de Frete por Região.
-         * P1-P5: Cada uma das 5 regiões do enum.
-         * - Para isolar, usamos um frete base fixo de R$ 24,00.
-         * - (Peso 6kg = R$ 12 frete + R$ 12 taxa)
-         * - Cliente BRONZE e subtotal < R$ 500.
-         */
-        @ParameterizedTest(name = "[{index}] {2}")
-        @CsvFileSource(resources = "/ecommerce/service/particoes_frete_regiao.csv", numLinesToSkip = 1)
-        @DisplayName("Partições: Multiplicador de Frete por Região")
-        void quandoRegiaoVaria_entaoAplicaMultiplicadorFrete(String regiao, String totalEsperado, String cenario) {
-
-                Regiao regiaoEnum = Regiao.valueOf(regiao);
-
-                Produto p = TestUtils.produto(
-                                "Produto Teste Região",
-                                "50.00",
-                                "6.0",
-                                "1", "1", "1",
-                                false,
-                                TipoProduto.ELETRONICO);
-
-                ItemCompra i = TestUtils.item(p, 1);
-                CarrinhoDeCompras carrinho = TestUtils.carrinho(i);
-
-                BigDecimal total = compraService.calcularCustoTotal(carrinho, regiaoEnum, TipoCliente.BRONZE);
-
-                assertThat(total).as(cenario).isEqualByComparingTo(totalEsperado);
-        }
-
-        /**
-         * Testa as partições do Benefício de Nível do Cliente sobre o frete.
-         * P1-P3: Ouro (100%), Prata (50%), Bronze (0%) .
-         * - Para isolar, usamos um frete base fixo de R$ 24,00 (Peso 6kg, Região
-         * SUDESTE).
-         * - Subtotal abaixo de R$ 500.
-         */
-        @ParameterizedTest(name = "[{index}] {2}")
-        @CsvFileSource(resources = "/ecommerce/service/particoes_beneficio_cliente.csv", numLinesToSkip = 1)
-        @DisplayName("Partições: Benefício de Nível do Cliente (Desconto Frete)")
-        void quandoNivelClienteVaria_entaoAplicaDescontoFrete(String tipoCliente, String totalEsperado,
-                        String cenario) {
-
-                TipoCliente tipoClienteEnum = TipoCliente.valueOf(tipoCliente);
-
-                Produto p = TestUtils.produto(
-                                "Produto Teste Cliente",
-                                "50.00",
-                                "6.0",
-                                "1", "1", "1",
-                                false,
-                                TipoProduto.ELETRONICO);
-
-                ItemCompra i = TestUtils.item(p, 1);
-                CarrinhoDeCompras carrinho = TestUtils.carrinho(i);
-
-                BigDecimal total = compraService.calcularCustoTotal(carrinho, Regiao.SUDESTE, tipoClienteEnum);
-
-                assertThat(total).as(cenario).isEqualByComparingTo(totalEsperado);
-        }
-
-        // --- TESTES DE ROBUSTEZ ---
-
-        /**
-         * Teste de Robustez P1: Quantidade <= 0
-         * Verifica se o sistema lança uma exceção quando a quantidade
-         * de um item no carrinho é zero ou negativa.
-         */
-        @ParameterizedTest(name = "Robustez P1: Quantidade = {0} (inválida)")
-        @ValueSource(ints = { 0, -1 })
-        @DisplayName("Robustez P1: Lança exceção se Quantidade for zero ou negativa")
-        void quandoItemComQuantidadeInvalida_entaoLancaExcecao(int quantidadeInvalida) {
-                Produto p = TestUtils.produtoPadrao();
-                ItemCompra itemInvalido = TestUtils.item(p, quantidadeInvalida);
-                CarrinhoDeCompras carrinho = TestUtils.carrinho(itemInvalido);
-
-                Regiao regiao = Regiao.SUDESTE;
-                TipoCliente cliente = TipoCliente.BRONZE;
-
-                IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-                        compraService.calcularCustoTotal(carrinho, regiao, cliente);
-                }, "Deveria lançar exceção para quantidade <= 0");
-
-                String nomeProduto = p.getNome();
-                assertThat(exception.getMessage()).as("Mensagem de erro deve ser clara")
-                                .contains("Quantidade inválida no produto: " + nomeProduto);
-        }
-
-        /**
-         * Teste de Robustez P2: Preços negativos
-         * Verifica se o sistema lança uma exceção quando o preço
-         * de um produto no carrinho é negativo.
-         */
-        @Test
-        @DisplayName("Robustez P2: Lança exceção se Preço for negativo")
-        void quandoItemComPrecoNegativo_entaoLancaExcecao() {
-
-                String nomeProdutoInvalido = "Produto Preço Negativo";
-
-                Produto p = TestUtils.produto(
-                                nomeProdutoInvalido,
-                                "-100.00",
-                                "1.0", "1", "1", "1",
-                                false,
-                                TipoProduto.ELETRONICO);
-
-                CarrinhoDeCompras carrinho = TestUtils.carrinho(TestUtils.item(p, 1));
-                Regiao regiao = Regiao.SUDESTE;
-                TipoCliente cliente = TipoCliente.BRONZE;
-
-                IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-                        compraService.calcularCustoTotal(carrinho, regiao, cliente);
-                }, "Deveria lançar exceção para preço negativo");
-
-                assertThat(exception.getMessage())
-                                .as("Mensagem de erro deve bater com a implementação")
-                                .isEqualTo("Preço inválido no produto: " + nomeProdutoInvalido);
-        }
-
-        /**
-         * Teste de Robustez P3: Cliente nulo
-         * Verifica se o sistema lança uma exceção quando o TipoCliente é nulo.
-         */
-        @Test
-        @DisplayName("Robustez P3: Lança exceção se Cliente for nulo")
-        void quandoClienteNulo_entaoLancaExcecao() {
-
-                Produto p = TestUtils.produtoPadrao();
-                CarrinhoDeCompras carrinho = TestUtils.carrinho(TestUtils.item(p, 1));
-                Regiao regiao = Regiao.SUDESTE;
-
-                IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-                        compraService.calcularCustoTotal(carrinho, regiao, null);
-                }, "Deveria lançar exceção para cliente nulo");
-
-                assertThat(exception.getMessage())
-                                .as("Mensagem de erro deve bater com a implementação")
-                                .isEqualTo("Tipo de cliente não pode ser nulo");
-        }
-
-        /**
-         * Teste de Robustez P4a: Carrinho nulo
-         * Verifica se o sistema lança uma exceção quando o CarrinhoDeCompras é nulo.
-         */
-        @Test
-        @DisplayName("Robustez P4a: Lança exceção se Carrinho for nulo")
-        void quandoCarrinhoNulo_entaoLancaExcecao() {
-
-                Regiao regiao = Regiao.SUDESTE;
-                TipoCliente cliente = TipoCliente.BRONZE;
-
-                IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-                        compraService.calcularCustoTotal(null, regiao, cliente);
-                }, "Deveria lançar exceção para carrinho nulo");
-
-                assertThat(exception.getMessage())
-                                .as("Mensagem de erro deve bater com a implementação")
-                                .isEqualTo("Carrinho não pode ser nulo");
-        }
-
-        /**
-         * Teste de Robustez P4b: Carrinho vazio
-         * Verifica se o sistema lança uma exceção quando o CarrinhoDeCompras
-         * não contém itens.
-         */
-        @Test
-        @DisplayName("Robustez P4b: Lança exceção se Carrinho estiver vazio")
-        void quandoCarrinhoVazio_entaoLancaExcecao() {
-
-                CarrinhoDeCompras carrinhoVazio = TestUtils.carrinho();
-                Regiao regiao = Regiao.SUDESTE;
-                TipoCliente cliente = TipoCliente.BRONZE;
-
-                IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-                        compraService.calcularCustoTotal(carrinhoVazio, regiao, cliente);
-                }, "Deveria lançar exceção para carrinho vazio");
-
-                assertThat(exception.getMessage())
-                                .as("Mensagem de erro deve bater com a implementação")
-                                .isEqualTo("Carrinho não pode estar vazio");
-        }
-
-        /**
-         * Teste de Robustez P5: Dimensões negativas ou zero
-         * Verifica se o sistema lança uma exceção quando C, L ou A são <= 0.
-         */
-        @ParameterizedTest(name = "Robustez P5: C={1}, L={2}, A={3} (inválido)")
-        @CsvSource({
-                        "'-10', '10',  '10'",
-                        "'10',  '-10', '10'",
-                        "'10',  '10',  '-10'",
-                        "'10',  '10',  '0'"
-        })
-        @DisplayName("Robustez P5: Lança exceção se Dimensão for negativa ou zero")
-        void quandoItemComDimensaoInvalida_entaoLancaExcecao(String c, String l, String a) {
-
-                String nomeProdutoInvalido = "Produto Dimensão Inválida";
-                Produto p = TestUtils.produto(
-                                nomeProdutoInvalido,
-                                "100.00",
-                                "1.0",
-                                c, l, a,
-                                false,
-                                TipoProduto.ELETRONICO);
-
-                CarrinhoDeCompras carrinho = TestUtils.carrinho(TestUtils.item(p, 1));
-                Regiao regiao = Regiao.SUDESTE;
-                TipoCliente cliente = TipoCliente.BRONZE;
-
-                IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-                        compraService.calcularCustoTotal(carrinho, regiao, cliente);
-                }, "Deveria lançar exceção para dimensão <= 0");
-
-                assertThat(exception.getMessage())
-                                .as("Mensagem de erro deve bater com a implementação")
-                                .isEqualTo("Dimensões inválidas (devem ser > 0) no produto: " + nomeProdutoInvalido);
-        }
-
-        /**
-         * Teste de Robustez P6: Peso físico negativo ou zero
-         * Verifica se o sistema lança uma exceção quando o peso é <= 0.
-         */
-        @ParameterizedTest(name = "Robustez P6: Peso = {0} (inválido)")
-        @ValueSource(strings = { "0.0", "-1.0" })
-        @DisplayName("Robustez P6: Lança exceção se Peso for negativo ou zero")
-        void quandoItemComPesoInvalido_entaoLancaExcecao(String pesoInvalido) {
-
-                // Arrange
-                String nomeProdutoInvalido = "Produto Peso Inválido";
-                Produto p = TestUtils.produto(
-                                nomeProdutoInvalido,
-                                "100.00",
-                                pesoInvalido,
-                                "10", "10", "10",
-                                false,
-                                TipoProduto.ELETRONICO);
-
-                CarrinhoDeCompras carrinho = TestUtils.carrinho(TestUtils.item(p, 1));
-                Regiao regiao = Regiao.SUDESTE;
-                TipoCliente cliente = TipoCliente.BRONZE;
-
-                IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-                        compraService.calcularCustoTotal(carrinho, regiao, cliente);
-                }, "Deveria lançar exceção para peso <= 0");
-
-                assertThat(exception.getMessage())
-                                .as("Mensagem de erro deve bater com a implementação")
-                                .isEqualTo("Peso físico inválido (deve ser > 0) no produto: " + nomeProdutoInvalido);
-        }
-
-        /**
-         * Teste de Robustez P7: Região nula
-         * Verifica se o sistema lança uma exceção quando a Regiao é nula.
-         */
-        @Test
-        @DisplayName("Robustez P7: Lança exceção se Regiao for nula")
-        void quandoRegiaoNula_entaoLancaExcecao() {
-
-                Produto p = TestUtils.produtoPadrao();
-                CarrinhoDeCompras carrinho = TestUtils.carrinho(TestUtils.item(p, 1));
-                TipoCliente cliente = TipoCliente.BRONZE;
-
-                IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-                        compraService.calcularCustoTotal(carrinho, null, cliente);
-                }, "Deveria lançar exceção para região nula");
-
-                assertThat(exception.getMessage())
-                                .as("Mensagem de erro deve bater com a implementação")
-                                .isEqualTo("Região não pode ser nula");
-        }
-
-        /**
-         * Teste de Robustez P8: Nível de cliente nulo
-         * Verifica se o sistema lança uma exceção quando o TipoCliente é nulo.
-         */
-        @Test
-        @DisplayName("Robustez P8: Lança exceção se Nível do Cliente for nulo")
-        void quandoNivelClienteNulo_entaoLancaExcecao() {
-
-                Produto p = TestUtils.produtoPadrao();
-                CarrinhoDeCompras carrinho = TestUtils.carrinho(TestUtils.item(p, 1));
-                Regiao regiao = Regiao.SUDESTE;
-
-                IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-                        compraService.calcularCustoTotal(carrinho, regiao, null);
-                }, "Deveria lançar exceção para cliente nulo");
-
-                assertThat(exception.getMessage())
-                                .as("Mensagem de erro deve bater com a implementação")
-                                .isEqualTo("Tipo de cliente não pode ser nulo");
-        }
-
-        // --- TESTE DE ROBUSTEZ: Item ou Produto Nulo ---
-        @ParameterizedTest(name = "Robustez P9: item = {0}, produto = {1}")
-        @MethodSource("fornecerItensNulos")
-        @DisplayName("Robustez P9: Lança exceção se ItemCompra ou Produto for nulo")
-        void quandoItemOuProdutoNulo_entaoLancaExcecao(ItemCompra itemInvalido) {
-                CarrinhoDeCompras carrinho = TestUtils.carrinho(itemInvalido);
-
-                Regiao regiao = Regiao.SUDESTE;
-                TipoCliente cliente = TipoCliente.BRONZE;
-
-                IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-                        compraService.calcularCustoTotal(carrinho, regiao, cliente);
-                });
-
-                assertThat(exception.getMessage()).as("Mensagem de erro deve ser clara")
-                                .contains("Item de compra ou produto não pode ser nulo");
-        }
-
-        @ParameterizedTest(name = "[{index}] {3}")
-        @CsvSource({
-                        // quantidade, preco, esperado, cenario
-                        "2, 50.00, 100.00, 'Itens normais com preço e quantidade válidos'",
-                        "null, 50.00, 0.00, 'Quantidade nula deve ser tratada como 0'",
-                        "2, null, 0.00, 'Preço nulo deve ser tratado como 0'",
-                        "null, null, 0.00, 'Preço e quantidade nulos devem resultar em subtotal 0'"
-        })
-         @DisplayName("Robustez P10: múltiplos itens diferentes")
-        void quandoItensVariam_entaoCalculaSubtotalCorretamente(
-                        String quantidadeStr,
-                        String precoStr,
-                        String totalEsperado,
-                        String cenario) {
-
-                Integer quantidade = "null".equals(quantidadeStr) ? null : Integer.valueOf(quantidadeStr);
-                BigDecimal preco = "null".equals(precoStr) ? null : new BigDecimal(precoStr);
-
-                Produto produto = new Produto();
-                produto.setNome("Produto Teste");
-                produto.setPreco(preco);
-                produto.setPesoFisico(new BigDecimal("1"));
-                produto.setComprimento(new BigDecimal("1"));
-                produto.setLargura(new BigDecimal("1"));
-                produto.setAltura(new BigDecimal("1"));
-                produto.setTipo(TipoProduto.ELETRONICO);
-
-                ItemCompra item = new ItemCompra();
-                item.setProduto(produto);
-                Long quantidadeLong = quantidade == null ? null : quantidade.longValue();
-                item.setQuantidade(quantidadeLong);
-
-                List<ItemCompra> itens = Collections.singletonList(item);
-
-                BigDecimal subtotal = compraService.calcularSubtotal(itens);
-
-                assertThat(subtotal)
-                                .as(cenario)
-                                .isEqualByComparingTo(new BigDecimal(totalEsperado));
-        }
-
-        /**
-         * Testa múltiplos itens diferentes para garantir soma correta do subtotal
-         */
-        @DisplayName("Robustez P11: múltiplos itens diferentes")
-        @Test
-        void quandoMultiplosItens_entaoSomaSubtotalCorretamente() {
-
-                Produto p1 = new Produto();
-                p1.setNome("Produto 1");
-                p1.setPreco(new BigDecimal("10"));
-                p1.setPesoFisico(new BigDecimal("1"));
-                p1.setComprimento(new BigDecimal("1"));
-                p1.setLargura(new BigDecimal("1"));
-                p1.setAltura(new BigDecimal("1"));
-                p1.setTipo(TipoProduto.ELETRONICO);
-
-                Produto p2 = new Produto();
-                p2.setNome("Produto 2");
-                p2.setPreco(new BigDecimal("20"));
-                p2.setPesoFisico(new BigDecimal("1"));
-                p2.setComprimento(new BigDecimal("1"));
-                p2.setLargura(new BigDecimal("1"));
-                p2.setAltura(new BigDecimal("1"));
-                p2.setTipo(TipoProduto.ELETRONICO);
-
-                ItemCompra i1 = new ItemCompra();
-                i1.setProduto(p1);
-                i1.setQuantidade(2L);
-
-                ItemCompra i2 = new ItemCompra();
-                i2.setProduto(p2);
-                i2.setQuantidade(3L);
-
-                List<ItemCompra> itens = Arrays.asList(i1, i2);
-                BigDecimal subtotal = compraService.calcularSubtotal(itens);
-
-                // subtotal = (10*2) + (20*3) = 20 + 60 = 80
-                assertThat(subtotal).isEqualByComparingTo(new BigDecimal("80"));
-        }
-
-
-        static Stream<ItemCompra> fornecerItensNulos() {
-                Produto produtoValido = TestUtils.produtoPadrao();
-
-                return Stream.of(
-                                null,
-                                TestUtils.item(null, 1) 
-                );
-        }
-
+    private CompraService compraService;
+
+    @BeforeEach
+    void setup() {
+            compraService = new CompraService(null, null, null, null);
+    }
+
+    /**
+     * Testa as partições do Peso Tributável, que é max(físico, cúbico).
+     * Usamos um subtotal fixo de R$ 50,00 (sem desconto por valor).
+     * Usamos Regiao.SUDESTE (x1.0) e TipoCliente.BRONZE (sem desconto no frete)
+     * para isolar o cálculo do frete baseado apenas no peso.
+     */
+    @ParameterizedTest(name = "[{index}] {5}]")
+    @CsvFileSource(resources = "/ecommerce/service/particoes_peso_tributavel.csv", numLinesToSkip = 1)
+    @DisplayName("Partições: Cálculo do Peso Tributável (Físico vs Cúbico)")
+    void quandoPesoFisicoOuCubicoMaior_entaoAplicaFreteSobreMaior(String peso, String c, String l, String a,
+                    String totalEsperado, String cenario) {
+            Produto produto = TestUtils.produto(
+                            "Produto de teste",
+                            "50.00",
+                            peso,
+                            c, l, a,
+                            false,
+                            TipoProduto.ELETRONICO);
+
+            ItemCompra i = TestUtils.item(produto, 1);
+            CarrinhoDeCompras carrinho = TestUtils.carrinho(i);
+
+            BigDecimal total = compraService.calcularCustoTotal(carrinho, Regiao.SUDESTE, TipoCliente.BRONZE);
+
+            assertThat(total).as(cenario).isEqualByComparingTo(totalEsperado);
+    }
+
+    /**
+     * Testa as partições de desconto por quantidade de itens do MESMO TIPO.
+     * Para isolar esta regra:
+     * - O subtotal é mantido abaixo de R$ 500,00 para não ativar o desconto por
+     * valor.
+     * - O peso é mantido em 1kg (isento) para não adicionar frete.
+     * - Cliente BRONZE e Região SUDESTE são usados para não alterar o frete.
+     */
+    @ParameterizedTest(name = "[{index}] {3}")
+    @CsvFileSource(resources = "/ecommerce/service/particoes_desconto_itens.csv", numLinesToSkip = 1)
+    @DisplayName("Partições: Desconto por Múltiplos Itens")
+    void quandoQuantidadeItensMesmoTipoVaria_entaoAplicaDescontoCorreto(
+                    int quantidade, String precoUnitario, String totalEsperado, String cenario) {
+
+            Produto p = TestUtils.produto(
+                            "Produto de teste",
+                            precoUnitario,
+                            "0.5",
+                            "1", "1", "1",
+                            false,
+                            TipoProduto.ELETRONICO);
+
+            ItemCompra i = TestUtils.item(p, quantidade);
+            CarrinhoDeCompras carrinho = TestUtils.carrinho(i);
+
+            BigDecimal total = compraService.calcularCustoTotal(carrinho, Regiao.SUDESTE, TipoCliente.BRONZE);
+
+            assertThat(total).as(cenario).isEqualByComparingTo(totalEsperado);
+    }
+
+    /**
+     * Testa as partições de desconto por valor total do carrinho .
+     * Para isolar esta regra:
+     * - Usamos apenas 1 item para não ativar o desconto por múltiplos itens.
+     * - O peso é mantido em 0.5kg (isento) para não adicionar frete.
+     * - Cliente BRONZE e Região SUDESTE são usados para não alterar o frete.
+     */
+    @ParameterizedTest(name = "[{index}] {2}")
+    @CsvFileSource(resources = "/ecommerce/service/particoes_desconto_valor.csv", numLinesToSkip = 1)
+    @DisplayName("Partições: Desconto por Valor de Carrinho")
+    void quandoSubtotalVaria_entaoAplicaDescontoPorValorCorreto(String subtotal, String totalEsperado,
+                    String cenario) {
+            Produto produto = TestUtils.produto(
+                            "Tesde de produto caro",
+                            subtotal,
+                            "1",
+                            "1", "1", "1",
+                            false,
+                            TipoProduto.ELETRONICO);
+
+            ItemCompra i = TestUtils.item(produto, 1);
+            CarrinhoDeCompras carrinho = TestUtils.carrinho(i);
+
+            BigDecimal total = compraService.calcularCustoTotal(carrinho, Regiao.SUDESTE, TipoCliente.BRONZE);
+
+            assertThat(total).as(cenario).isEqualByComparingTo(totalEsperado);
+    }
+
+    /**
+     * Testa o cálculo de frete baseado nas faixas de peso total.
+     * Para isolar esta regra:
+     * - Usamos 1 item não-frágil.
+     * - Usamos Cliente BRONZE (sem desconto de frete).
+     * - Usamos Região SUDESTE (multiplicador 1.0x).
+     * - Subtotal abaixo de R$ 500 (sem desconto de valor).
+     */
+    @ParameterizedTest(name = "[{index}] {3}")
+    @CsvFileSource(resources = "/ecommerce/service/particoes_frete_peso.csv", numLinesToSkip = 1)
+    @DisplayName("Partições: Cálculo do Frete Base por Faixa de Peso")
+    void quandoPesoVaria_entaoAplicaFretePorFaixaCorreta(String peso, String subtotal, String totalEsperado,
+                    String cenario) {
+
+            Produto p = TestUtils.produto(
+                            "Produto Teste Peso",
+                            subtotal,
+                            peso,
+                            "1", "1", "1",
+                            false,
+                            TipoProduto.ELETRONICO);
+
+            ItemCompra i = TestUtils.item(p, 1);
+            CarrinhoDeCompras carrinho = TestUtils.carrinho(i);
+
+            BigDecimal total = compraService.calcularCustoTotal(carrinho, Regiao.SUDESTE, TipoCliente.BRONZE);
+
+            assertThat(total).as(cenario).isEqualByComparingTo(totalEsperado);
+    }
+
+    /**
+     * Testa as partições da Taxa Mínima de Frete (R$ 12,00).
+     * P1: Faixa isenta (sem taxa)
+     * P2: Faixa não isenta (com taxa)
+     */
+    @ParameterizedTest(name = "[{index}] {3}")
+    @CsvFileSource(resources = "/ecommerce/service/particoes_frete_taxa_minima.csv", numLinesToSkip = 1)
+    @DisplayName("Partições: Taxa Mínima de Frete (R$ 12)")
+    void quandoFreteIsentoOuNao_entaoAplicaTaxaMinimaCorretamente(String peso, String subtotal,
+                    String totalEsperado, String cenario) {
+
+            Produto p = TestUtils.produto(
+                            "Produto Teste Taxa",
+                            subtotal,
+                            peso,
+                            "1", "1", "1",
+                            false,
+                            TipoProduto.ELETRONICO);
+
+            ItemCompra i = TestUtils.item(p, 1);
+            CarrinhoDeCompras carrinho = TestUtils.carrinho(i);
+
+            BigDecimal total = compraService.calcularCustoTotal(carrinho, Regiao.SUDESTE, TipoCliente.BRONZE);
+
+            assertThat(total).as(cenario).isEqualByComparingTo(totalEsperado);
+    }
+
+    /**
+     * Testa as partições da Taxa de Manuseio (Item Frágil).
+     * P1: Item não frágil (sem taxa).
+     * P2: Item frágil (com taxa de R$ 5 * quantidade).
+     * * Para isolar:
+     * - Usamos um peso (2 * 3.0 = 6.0kg) para sair da faixa isenta e ter um frete
+     * base.
+     * - Cliente BRONZE e Região SUDESTE.
+     */
+    @ParameterizedTest(name = "[{index}] {5}")
+    @CsvFileSource(resources = "/ecommerce/service/particoes_frete_taxa_manuseio.csv", numLinesToSkip = 1)
+    @DisplayName("Partições: Taxa de Manuseio (Item Frágil)")
+    void quandoItemFragil_entaoAplicaTaxaManuseio(boolean isFragil, int quantidade, String pesoProduto,
+                    String subtotalProduto, String totalEsperado, String cenario) {
+
+            Produto p = TestUtils.produto(
+                            "Produto Teste Frágil",
+                            subtotalProduto,
+                            pesoProduto,
+                            "1", "1", "1",
+                            isFragil,
+                            TipoProduto.ELETRONICO);
+
+            ItemCompra i = TestUtils.item(p, quantidade);
+            CarrinhoDeCompras carrinho = TestUtils.carrinho(i);
+
+            BigDecimal total = compraService.calcularCustoTotal(carrinho, Regiao.SUDESTE, TipoCliente.BRONZE);
+
+            assertThat(total).as(cenario).isEqualByComparingTo(totalEsperado);
+    }
+
+    /**
+     * Testa as partições do Multiplicador de Frete por Região.
+     * P1-P5: Cada uma das 5 regiões do enum.
+     * - Para isolar, usamos um frete base fixo de R$ 24,00.
+     * - (Peso 6kg = R$ 12 frete + R$ 12 taxa)
+     * - Cliente BRONZE e subtotal < R$ 500.
+     */
+    @ParameterizedTest(name = "[{index}] {2}")
+    @CsvFileSource(resources = "/ecommerce/service/particoes_frete_regiao.csv", numLinesToSkip = 1)
+    @DisplayName("Partições: Multiplicador de Frete por Região")
+    void quandoRegiaoVaria_entaoAplicaMultiplicadorFrete(String regiao, String totalEsperado, String cenario) {
+
+            Regiao regiaoEnum = Regiao.valueOf(regiao);
+
+            Produto p = TestUtils.produto(
+                            "Produto Teste Região",
+                            "50.00",
+                            "6.0",
+                            "1", "1", "1",
+                            false,
+                            TipoProduto.ELETRONICO);
+
+            ItemCompra i = TestUtils.item(p, 1);
+            CarrinhoDeCompras carrinho = TestUtils.carrinho(i);
+
+            BigDecimal total = compraService.calcularCustoTotal(carrinho, regiaoEnum, TipoCliente.BRONZE);
+
+            assertThat(total).as(cenario).isEqualByComparingTo(totalEsperado);
+    }
+
+    /**
+     * Testa as partições do Benefício de Nível do Cliente sobre o frete.
+     * P1-P3: Ouro (100%), Prata (50%), Bronze (0%) .
+     * - Para isolar, usamos um frete base fixo de R$ 24,00 (Peso 6kg, Região
+     * SUDESTE).
+     * - Subtotal abaixo de R$ 500.
+     */
+    @ParameterizedTest(name = "[{index}] {2}")
+    @CsvFileSource(resources = "/ecommerce/service/particoes_beneficio_cliente.csv", numLinesToSkip = 1)
+    @DisplayName("Partições: Benefício de Nível do Cliente (Desconto Frete)")
+    void quandoNivelClienteVaria_entaoAplicaDescontoFrete(String tipoCliente, String totalEsperado,
+                    String cenario) {
+
+            TipoCliente tipoClienteEnum = TipoCliente.valueOf(tipoCliente);
+
+            Produto p = TestUtils.produto(
+                            "Produto Teste Cliente",
+                            "50.00",
+                            "6.0",
+                            "1", "1", "1",
+                            false,
+                            TipoProduto.ELETRONICO);
+
+            ItemCompra i = TestUtils.item(p, 1);
+            CarrinhoDeCompras carrinho = TestUtils.carrinho(i);
+
+            BigDecimal total = compraService.calcularCustoTotal(carrinho, Regiao.SUDESTE, tipoClienteEnum);
+
+            assertThat(total).as(cenario).isEqualByComparingTo(totalEsperado);
+    }
+
+    // --- TESTES DE ROBUSTEZ ---
+
+    /**
+     * Teste de Robustez P4a: Carrinho nulo
+     * Verifica se o sistema lança uma exceção quando o CarrinhoDeCompras é nulo.
+     */
+    @Test
+    @DisplayName("Robustez P4a: Lança exceção se Carrinho for nulo")
+    void quandoCarrinhoNulo_entaoLancaExcecao() {
+
+        Regiao regiao = Regiao.SUDESTE;
+        TipoCliente cliente = TipoCliente.BRONZE;
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            compraService.calcularCustoTotal(null, regiao, cliente);
+        }, "Deveria lançar exceção para carrinho nulo");
+
+        assertThat(exception.getMessage())
+                .as("Mensagem de erro deve bater com a implementação")
+                .isEqualTo("Carrinho não pode ser nulo");
+    }
+
+    /**
+     * Teste de Robustez P1: Quantidade <= 0
+     * Verifica se o sistema lança uma exceção quando a quantidade
+     * de um item no carrinho é zero ou negativa.
+     */
+    @ParameterizedTest(name = "Robustez P1: Quantidade = {0} (inválida)")
+    @ValueSource(ints = { 0, -1 })
+    @DisplayName("Robustez P1: Lança exceção se Quantidade for zero ou negativa")
+    void quandoItemComQuantidadeInvalida_entaoLancaExcecao(int quantidadeInvalida) {
+            Produto p = TestUtils.produtoPadrao();
+            ItemCompra itemInvalido = TestUtils.item(p, quantidadeInvalida);
+            CarrinhoDeCompras carrinho = TestUtils.carrinho(itemInvalido);
+
+            Regiao regiao = Regiao.SUDESTE;
+            TipoCliente cliente = TipoCliente.BRONZE;
+
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+                    compraService.calcularCustoTotal(carrinho, regiao, cliente);
+            }, "Deveria lançar exceção para quantidade <= 0");
+
+            String nomeProduto = p.getNome();
+            assertThat(exception.getMessage()).as("Mensagem de erro deve ser clara")
+                            .contains("Quantidade inválida no produto: " + nomeProduto);
+    }
+
+    /**
+     * Teste de Robustez P2: Preços negativos
+     * Verifica se o sistema lança uma exceção quando o preço
+     * de um produto no carrinho é negativo.
+     */
+    @Test
+    @DisplayName("Robustez P2: Lança exceção se Preço for negativo")
+    void quandoItemComPrecoNegativo_entaoLancaExcecao() {
+
+            String nomeProdutoInvalido = "Produto Preço Negativo";
+
+            Produto p = TestUtils.produto(
+                            nomeProdutoInvalido,
+                            "-100.00",
+                            "1.0", "1", "1", "1",
+                            false,
+                            TipoProduto.ELETRONICO);
+
+            CarrinhoDeCompras carrinho = TestUtils.carrinho(TestUtils.item(p, 1));
+            Regiao regiao = Regiao.SUDESTE;
+            TipoCliente cliente = TipoCliente.BRONZE;
+
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+                    compraService.calcularCustoTotal(carrinho, regiao, cliente);
+            }, "Deveria lançar exceção para preço negativo");
+
+            assertThat(exception.getMessage())
+                            .as("Mensagem de erro deve bater com a implementação")
+                            .isEqualTo("Preço inválido no produto: " + nomeProdutoInvalido);
+    }
+
+    /**
+     * Teste de Robustez P3: Cliente nulo
+     * Verifica se o sistema lança uma exceção quando o TipoCliente é nulo.
+     */
+    @Test
+    @DisplayName("Robustez P3: Lança exceção se Cliente for nulo")
+    void quandoClienteNulo_entaoLancaExcecao() {
+
+            Produto p = TestUtils.produtoPadrao();
+            CarrinhoDeCompras carrinho = TestUtils.carrinho(TestUtils.item(p, 1));
+            Regiao regiao = Regiao.SUDESTE;
+
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+                    compraService.calcularCustoTotal(carrinho, regiao, null);
+            }, "Deveria lançar exceção para cliente nulo");
+
+            assertThat(exception.getMessage())
+                            .as("Mensagem de erro deve bater com a implementação")
+                            .isEqualTo("Tipo de cliente não pode ser nulo");
+    }
+
+    /**
+     * Teste de Robustez P4b: Carrinho vazio
+     * Verifica se o sistema lança uma exceção quando o CarrinhoDeCompras
+     * não contém itens.
+     */
+    @Test
+    @DisplayName("Robustez P4b: Lança exceção se Carrinho estiver vazio")
+    void quandoCarrinhoVazio_entaoLancaExcecao() {
+
+            CarrinhoDeCompras carrinhoVazio = TestUtils.carrinho();
+            Regiao regiao = Regiao.SUDESTE;
+            TipoCliente cliente = TipoCliente.BRONZE;
+
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+                    compraService.calcularCustoTotal(carrinhoVazio, regiao, cliente);
+            }, "Deveria lançar exceção para carrinho vazio");
+
+            assertThat(exception.getMessage())
+                            .as("Mensagem de erro deve bater com a implementação")
+                            .isEqualTo("Carrinho não pode estar vazio");
+    }
+
+    /**
+     * Teste de Robustez P5: Dimensões negativas ou zero
+     * Verifica se o sistema lança uma exceção quando C, L ou A são <= 0.
+     */
+    @ParameterizedTest(name = "Robustez P5: C={1}, L={2}, A={3} (inválido)")
+    @CsvSource({
+                    "'-10', '10',  '10'",
+                    "'10',  '-10', '10'",
+                    "'10',  '10',  '-10'",
+                    "'10',  '10',  '0'"
+    })
+    @DisplayName("Robustez P5: Lança exceção se Dimensão for negativa ou zero")
+    void quandoItemComDimensaoInvalida_entaoLancaExcecao(String c, String l, String a) {
+
+            String nomeProdutoInvalido = "Produto Dimensão Inválida";
+            Produto p = TestUtils.produto(
+                            nomeProdutoInvalido,
+                            "100.00",
+                            "1.0",
+                            c, l, a,
+                            false,
+                            TipoProduto.ELETRONICO);
+
+            CarrinhoDeCompras carrinho = TestUtils.carrinho(TestUtils.item(p, 1));
+            Regiao regiao = Regiao.SUDESTE;
+            TipoCliente cliente = TipoCliente.BRONZE;
+
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+                    compraService.calcularCustoTotal(carrinho, regiao, cliente);
+            }, "Deveria lançar exceção para dimensão <= 0");
+
+            assertThat(exception.getMessage())
+                            .as("Mensagem de erro deve bater com a implementação")
+                            .isEqualTo("Dimensões inválidas (devem ser > 0) no produto: " + nomeProdutoInvalido);
+    }
+
+    /**
+     * Teste de Robustez P6: Peso físico negativo ou zero
+     * Verifica se o sistema lança uma exceção quando o peso é <= 0.
+     */
+    @ParameterizedTest(name = "Robustez P6: Peso = {0} (inválido)")
+    @ValueSource(strings = { "0.0", "-1.0" })
+    @DisplayName("Robustez P6: Lança exceção se Peso for negativo ou zero")
+    void quandoItemComPesoInvalido_entaoLancaExcecao(String pesoInvalido) {
+
+            // Arrange
+            String nomeProdutoInvalido = "Produto Peso Inválido";
+            Produto p = TestUtils.produto(
+                            nomeProdutoInvalido,
+                            "100.00",
+                            pesoInvalido,
+                            "10", "10", "10",
+                            false,
+                            TipoProduto.ELETRONICO);
+
+            CarrinhoDeCompras carrinho = TestUtils.carrinho(TestUtils.item(p, 1));
+            Regiao regiao = Regiao.SUDESTE;
+            TipoCliente cliente = TipoCliente.BRONZE;
+
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+                    compraService.calcularCustoTotal(carrinho, regiao, cliente);
+            }, "Deveria lançar exceção para peso <= 0");
+
+            assertThat(exception.getMessage())
+                            .as("Mensagem de erro deve bater com a implementação")
+                            .isEqualTo("Peso físico inválido (deve ser > 0) no produto: " + nomeProdutoInvalido);
+    }
+
+    /**
+     * Teste de Robustez P7: Região nula
+     * Verifica se o sistema lança uma exceção quando a Regiao é nula.
+     */
+    @Test
+    @DisplayName("Robustez P7: Lança exceção se Regiao for nula")
+    void quandoRegiaoNula_entaoLancaExcecao() {
+
+            Produto p = TestUtils.produtoPadrao();
+            CarrinhoDeCompras carrinho = TestUtils.carrinho(TestUtils.item(p, 1));
+            TipoCliente cliente = TipoCliente.BRONZE;
+
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+                    compraService.calcularCustoTotal(carrinho, null, cliente);
+            }, "Deveria lançar exceção para região nula");
+
+            assertThat(exception.getMessage())
+                            .as("Mensagem de erro deve bater com a implementação")
+                            .isEqualTo("Região não pode ser nula");
+    }
+
+    @Test
+    @DisplayName("Robustez P8: Lança exceção se o Tipo do produto for nulo")
+    void quandoTipoProdutoNulo_entaoLancaExcecao() {
+
+        Produto p = TestUtils.produtoPadrao();
+        p.setTipo(null);
+        String nomeProduto = p.getNome();
+
+        ItemCompra item = TestUtils.item(p, 1);
+        CarrinhoDeCompras carrinho = TestUtils.carrinho(item);
+        Regiao regiao = Regiao.SUDESTE;
+        TipoCliente cliente = TipoCliente.BRONZE;
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            compraService.calcularCustoTotal(carrinho, regiao, cliente);
+        }, "Deveria lançar exceção para tipo de produto nulo");
+
+        assertThat(exception.getMessage())
+                .isEqualTo("Tipo do produto não pode ser nulo: " + nomeProduto);
+    }
+
+    // --- TESTE DE ROBUSTEZ: Item ou Produto Nulo ---
+    @ParameterizedTest(name = "Robustez P9: item = {0}, produto = {1}")
+    @MethodSource("fornecerItensNulos")
+    @DisplayName("Robustez P9: Lança exceção se ItemCompra ou Produto for nulo")
+    void quandoItemOuProdutoNulo_entaoLancaExcecao(ItemCompra itemInvalido) {
+            CarrinhoDeCompras carrinho = TestUtils.carrinho(itemInvalido);
+
+            Regiao regiao = Regiao.SUDESTE;
+            TipoCliente cliente = TipoCliente.BRONZE;
+
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+                    compraService.calcularCustoTotal(carrinho, regiao, cliente);
+            });
+
+            assertThat(exception.getMessage()).as("Mensagem de erro deve ser clara")
+                            .contains("Item de compra ou produto não pode ser nulo");
+    }
+
+    static Stream<ItemCompra> fornecerItensNulos() {
+            Produto produtoValido = TestUtils.produtoPadrao();
+
+            return Stream.of(
+                            null,
+                            TestUtils.item(null, 1)
+            );
+    }
 }

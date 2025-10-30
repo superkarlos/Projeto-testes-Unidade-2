@@ -119,16 +119,21 @@ public class CompraService {
 			if (item == null || item.getProduto() == null) {
 				throw new IllegalArgumentException("Item de compra ou produto não pode ser nulo");
 			}
+
+            Produto p = item.getProduto();
 	
 			if (item.getQuantidade() == null || item.getQuantidade() <= 0) {
 				throw new IllegalArgumentException("Quantidade inválida no produto: " + item.getProduto().getNome());
 			}
 	
-			if (item.getProduto().getPreco() == null || item.getProduto().getPreco().compareTo(BigDecimal.ZERO) < 0) {
+			if (p.getPreco() == null || p.getPreco().compareTo(BigDecimal.ZERO) < 0) {
 				throw new IllegalArgumentException("Preço inválido no produto: " + item.getProduto().getNome());
 			}
 
-            Produto p = item.getProduto();
+            if (p.getTipo() == null) {
+                throw new IllegalArgumentException("Tipo do produto não pode ser nulo: " + p.getNome());
+            }
+
             if (p.getComprimento() == null || p.getLargura() == null || p.getAltura() == null ||
                     p.getComprimento().compareTo(BigDecimal.ZERO) <= 0 ||
                     p.getLargura().compareTo(BigDecimal.ZERO) <= 0 ||
@@ -148,8 +153,8 @@ public class CompraService {
 	
 		for (ItemCompra item : itensCarrinho) {
 			Produto produto = item.getProduto();
-			BigDecimal precoProduto = produto.getPreco() == null ? BigDecimal.ZERO : produto.getPreco();
-			BigDecimal quantidadeItem = BigDecimal.valueOf(item.getQuantidade() == null ? 0L : item.getQuantidade());
+			BigDecimal precoProduto = produto.getPreco();
+			BigDecimal quantidadeItem = BigDecimal.valueOf(item.getQuantidade());
 			subtotal = subtotal.add(precoProduto.multiply(quantidadeItem));
 		}
 	
@@ -159,14 +164,13 @@ public class CompraService {
 	private BigDecimal calcularDescontoPorTipo(List<ItemCompra> itensCarrinho) {
 
 		Map<TipoProduto, Long> quantidadePorTipo = new HashMap<>();
-	
+
 		for (ItemCompra item : itensCarrinho) {
 			Produto produto = item.getProduto();
-			if (produto != null && produto.getTipo() != null) {
-				long quantidade = item.getQuantidade() == null ? 0L : item.getQuantidade();
-				quantidadePorTipo.put(produto.getTipo(),
-						quantidadePorTipo.getOrDefault(produto.getTipo(), 0L) + quantidade);
-			}
+			long quantidade = item.getQuantidade();
+            TipoProduto tipoProduto = produto.getTipo();
+
+            quantidadePorTipo.put(tipoProduto, quantidadePorTipo.getOrDefault(tipoProduto, 0L)+ quantidade);
 		}
 	
 		BigDecimal totalDesconto = BigDecimal.ZERO;
