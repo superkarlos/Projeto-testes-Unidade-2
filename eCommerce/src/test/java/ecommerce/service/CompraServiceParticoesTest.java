@@ -720,4 +720,22 @@ public class CompraServiceParticoesTest {
                             .as("Mensagem de erro deve bater com a implementação")
                             .isEqualTo("Peso físico inválido (deve ser > 0) no produto: " + nomeProdutoInvalido);
     }
+
+    // --- TESTES PARA COBERTURA TOTAL DE ARESTAS ---
+
+    @Test
+    @DisplayName("Partições Cobertura total: Múltiplos tipos de itens com descontos diferentes")
+    void quandoCarrinhoMisto_entaoCalculaDescontoCorretamente() {
+        Produto pAlimento = TestUtils.produto("Pão", "10.00", "0.1", "1", "1", "1", false, TipoProduto.ALIMENTO);
+        ItemCompra iAlimento = TestUtils.item(pAlimento, 3); // 3 * 10 = 30.00
+
+        Produto pRoupa = TestUtils.produto("Camisa", "50.00", "0.2", "1", "1", "1", false, TipoProduto.ROUPA);
+        ItemCompra iRoupa = TestUtils.item(pRoupa, 5); // 5 * 50 = 250.00
+
+        CarrinhoDeCompras carrinho = TestUtils.carrinho(iAlimento, iRoupa);
+
+        BigDecimal total = compraService.calcularCustoTotal(carrinho, Regiao.SUDESTE, TipoCliente.BRONZE);
+
+        assertThat(total).isEqualByComparingTo("253.50");
+    }
 }
