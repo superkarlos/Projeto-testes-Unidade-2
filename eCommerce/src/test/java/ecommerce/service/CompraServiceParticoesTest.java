@@ -270,13 +270,14 @@ public class CompraServiceParticoesTest {
     }
 
     // --- TESTES DE ROBUSTEZ ---
+    // Estão ordenados de acordo com quando são chamados em CompraService
 
     /**
-     * Teste de Robustez P4a: Carrinho nulo
+     * Teste de Robustez P1a: Carrinho nulo
      * Verifica se o sistema lança uma exceção quando o CarrinhoDeCompras é nulo.
      */
     @Test
-    @DisplayName("Robustez P4a: Lança exceção se Carrinho for nulo")
+    @DisplayName("Robustez P1a: Lança exceção se Carrinho for nulo")
     void quandoCarrinhoNulo_entaoLancaExcecao() {
 
         Regiao regiao = Regiao.SUDESTE;
@@ -292,13 +293,169 @@ public class CompraServiceParticoesTest {
     }
 
     /**
-     * Teste de Robustez P1: Quantidade <= 0
-     * Verifica se o sistema lança uma exceção quando a quantidade
-     * de um item no carrinho é zero ou negativa.
+     * Teste de Robustez P1b: Lista de itens do carrinho é nula
+     * Verifica se o sistema lança uma exceção quando a lista de itens do carrinho for nula.
      */
-    @ParameterizedTest(name = "Robustez P1: Quantidade = {0} (inválida)")
+    @Test
+    @DisplayName("Robustez P1b: Lança exceção se a LISTA de itens do carrinho for nula")
+    void quandoListaDeItensNula_entaoLancaExcecao() {
+
+        CarrinhoDeCompras carrinhoMalformado = new CarrinhoDeCompras();
+        carrinhoMalformado.setItens(null);
+
+        Regiao regiao = Regiao.SUDESTE;
+        TipoCliente cliente = TipoCliente.BRONZE;
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            compraService.calcularCustoTotal(carrinhoMalformado, regiao, cliente);
+        }, "Deveria lançar exceção para lista de itens nula");
+
+        assertThat(exception.getMessage())
+                .as("Mensagem de erro deve bater com a implementação")
+                .isEqualTo("Carrinho não pode estar vazio");
+    }
+
+    /**
+     * Teste de Robustez P1c: Carrinho vazio
+     * Verifica se o sistema lança uma exceção quando o CarrinhoDeCompras não contém itens.
+     */
+    @Test
+    @DisplayName("Robustez P1c: Lança exceção se Carrinho estiver vazio")
+    void quandoCarrinhoVazio_entaoLancaExcecao() {
+
+        CarrinhoDeCompras carrinhoVazio = TestUtils.carrinho();
+        Regiao regiao = Regiao.SUDESTE;
+        TipoCliente cliente = TipoCliente.BRONZE;
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            compraService.calcularCustoTotal(carrinhoVazio, regiao, cliente);
+        }, "Deveria lançar exceção para carrinho vazio");
+
+        assertThat(exception.getMessage())
+                .as("Mensagem de erro deve bater com a implementação")
+                .isEqualTo("Carrinho não pode estar vazio");
+    }
+
+    /**
+     * Teste de Robustez P2: Região nula
+     * Verifica se o sistema lança uma exceção quando a Regiao é nula.
+     */
+    @Test
+    @DisplayName("Robustez P2: Lança exceção se Regiao for nula")
+    void quandoRegiaoNula_entaoLancaExcecao() {
+
+        Produto p = TestUtils.produtoPadrao();
+        CarrinhoDeCompras carrinho = TestUtils.carrinho(TestUtils.item(p, 1));
+        TipoCliente cliente = TipoCliente.BRONZE;
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            compraService.calcularCustoTotal(carrinho, null, cliente);
+        }, "Deveria lançar exceção para região nula");
+
+        assertThat(exception.getMessage())
+                .as("Mensagem de erro deve bater com a implementação")
+                .isEqualTo("Região não pode ser nula");
+    }
+
+    /**
+     * Teste de Robustez P3: Cliente nulo
+     * Verifica se o sistema lança uma exceção quando o TipoCliente é nulo.
+     */
+    @Test
+    @DisplayName("Robustez P3: Lança exceção se Cliente for nulo")
+    void quandoClienteNulo_entaoLancaExcecao() {
+
+        Produto p = TestUtils.produtoPadrao();
+        CarrinhoDeCompras carrinho = TestUtils.carrinho(TestUtils.item(p, 1));
+        Regiao regiao = Regiao.SUDESTE;
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            compraService.calcularCustoTotal(carrinho, regiao, null);
+        }, "Deveria lançar exceção para cliente nulo");
+
+        assertThat(exception.getMessage())
+                .as("Mensagem de erro deve bater com a implementação")
+                .isEqualTo("Tipo de cliente não pode ser nulo");
+    }
+
+    /**
+     * Teste de Robustez P4: Item nulo
+     * Verifica se o sistema lança uma exceção quando o Item do carrinho é nulo.
+     */
+    @Test
+    @DisplayName("Robustez P4: Lança exceção se um Item na lista for nulo")
+    void quandoItemNaListaNulo_entaoLancaExcecao() {
+        ItemCompra itemLiteralmenteNulo = null;
+        CarrinhoDeCompras carrinho = TestUtils.carrinho(itemLiteralmenteNulo);
+
+        Regiao regiao = Regiao.SUDESTE;
+        TipoCliente cliente = TipoCliente.BRONZE;
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            compraService.calcularCustoTotal(carrinho, regiao, cliente);
+        }, "Deveria lançar exceção para um item nulo na lista");
+
+        assertThat(exception.getMessage())
+                .as("Mensagem de erro deve bater com a implementação")
+                .isEqualTo("Item de compra ou produto não pode ser nulo");
+    }
+
+    /**
+     * Teste de Robustez P5: Produto do item nulo
+     * Verifica se o sistema lança uma exceção quando o Produto do item é nulo.
+     */
+    @Test
+    @DisplayName("Robustez P5: Lança exceção se Produto do item for nulo")
+    void quandoProdutoDoItemNulo_entaoLancaExcecao() {
+        ItemCompra itemComProdutoNulo = TestUtils.item(null, 1);
+        CarrinhoDeCompras carrinho = TestUtils.carrinho(itemComProdutoNulo);
+
+        Regiao regiao = Regiao.SUDESTE;
+        TipoCliente cliente = TipoCliente.BRONZE;
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            compraService.calcularCustoTotal(carrinho, regiao, cliente);
+        }, "Deveria lançar exceção para um produto nulo no item");
+
+        assertThat(exception.getMessage())
+                .as("Mensagem de erro deve bater com a implementação")
+                .isEqualTo("Item de compra ou produto não pode ser nulo");
+    }
+
+    /**
+     * Teste de Robustez P6a: Quantidade == null
+     * Verifica se o sistema lança uma exceção quando a quantidade é nula.
+     */
+    @Test
+    @DisplayName("Robustez P6a: Lança exceção se Quantidade do item for nula")
+    void quandoQuantidadeItemNula_entaoLancaExcecao() {
+
+        Produto p = TestUtils.produtoPadrao();
+        String nomeProduto = p.getNome();
+
+        ItemCompra itemInvalido = new ItemCompra();
+        itemInvalido.setProduto(p);
+        itemInvalido.setQuantidade(null);
+
+        CarrinhoDeCompras carrinho = TestUtils.carrinho(itemInvalido);
+        Regiao regiao = Regiao.SUDESTE;
+        TipoCliente cliente = TipoCliente.BRONZE;
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            compraService.calcularCustoTotal(carrinho, regiao, cliente);
+        }, "Deveria lançar exceção para quantidade nula");
+
+        assertThat(exception.getMessage())
+                .isEqualTo("Quantidade inválida no produto: " + nomeProduto);
+    }
+
+    /**
+     * Teste de Robustez P6b: Quantidade <= 0
+     * Verifica se o sistema lança uma exceção quando a quantidade de um item no carrinho é zero ou negativa.
+     */
+    @ParameterizedTest(name = "Robustez P6b: Quantidade = {0} (inválida)")
     @ValueSource(ints = { 0, -1 })
-    @DisplayName("Robustez P1: Lança exceção se Quantidade for zero ou negativa")
+    @DisplayName("Robustez P6b: Lança exceção se Quantidade for zero ou negativa")
     void quandoItemComQuantidadeInvalida_entaoLancaExcecao(int quantidadeInvalida) {
             Produto p = TestUtils.produtoPadrao();
             ItemCompra itemInvalido = TestUtils.item(p, quantidadeInvalida);
@@ -317,12 +474,36 @@ public class CompraServiceParticoesTest {
     }
 
     /**
-     * Teste de Robustez P2: Preços negativos
-     * Verifica se o sistema lança uma exceção quando o preço
-     * de um produto no carrinho é negativo.
+     * Teste de Robustez P7a: Preços nulos
+     * Verifica se o sistema lança uma exceção quando o preço de um produto no carrinho é nulo
      */
     @Test
-    @DisplayName("Robustez P2: Lança exceção se Preço for negativo")
+    @DisplayName("Robustez P7a: Lança exceção se o preço do item for nulo")
+    void quandoPrecoItemNula_entaoLancaExcecao() {
+
+        Produto p = TestUtils.produtoPadrao();
+        p.setPreco(null);
+        String nomeProduto = p.getNome();
+
+        ItemCompra item = TestUtils.item(p, 1);
+        CarrinhoDeCompras carrinho = TestUtils.carrinho(item);
+        Regiao regiao = Regiao.SUDESTE;
+        TipoCliente cliente = TipoCliente.BRONZE;
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            compraService.calcularCustoTotal(carrinho, regiao, cliente);
+        }, "Deveria lançar exceção para preço nulo");
+
+        assertThat(exception.getMessage())
+                .isEqualTo("Preço inválido no produto: " + nomeProduto);
+    }
+
+    /**
+     * Teste de Robustez P7b: Preços negativos
+     * Verifica se o sistema lança uma exceção quando o preço de um produto no carrinho é negativo.
+     */
+    @Test
+    @DisplayName("Robustez P7b: Lança exceção se Preço for negativo")
     void quandoItemComPrecoNegativo_entaoLancaExcecao() {
 
             String nomeProdutoInvalido = "Produto Preço Negativo";
@@ -348,60 +529,42 @@ public class CompraServiceParticoesTest {
     }
 
     /**
-     * Teste de Robustez P3: Cliente nulo
-     * Verifica se o sistema lança uma exceção quando o TipoCliente é nulo.
+     * Teste de Robustez P8: Tipo do produto nulo
+     * Verifica se o sistema lança uma exceção quando tipo do produto é nulo.
      */
     @Test
-    @DisplayName("Robustez P3: Lança exceção se Cliente for nulo")
-    void quandoClienteNulo_entaoLancaExcecao() {
+    @DisplayName("Robustez P8: Lança exceção se o Tipo do produto for nulo")
+    void quandoTipoProdutoNulo_entaoLancaExcecao() {
 
-            Produto p = TestUtils.produtoPadrao();
-            CarrinhoDeCompras carrinho = TestUtils.carrinho(TestUtils.item(p, 1));
-            Regiao regiao = Regiao.SUDESTE;
+        Produto p = TestUtils.produtoPadrao();
+        p.setTipo(null);
+        String nomeProduto = p.getNome();
 
-            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-                    compraService.calcularCustoTotal(carrinho, regiao, null);
-            }, "Deveria lançar exceção para cliente nulo");
+        ItemCompra item = TestUtils.item(p, 1);
+        CarrinhoDeCompras carrinho = TestUtils.carrinho(item);
+        Regiao regiao = Regiao.SUDESTE;
+        TipoCliente cliente = TipoCliente.BRONZE;
 
-            assertThat(exception.getMessage())
-                            .as("Mensagem de erro deve bater com a implementação")
-                            .isEqualTo("Tipo de cliente não pode ser nulo");
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            compraService.calcularCustoTotal(carrinho, regiao, cliente);
+        }, "Deveria lançar exceção para tipo de produto nulo");
+
+        assertThat(exception.getMessage())
+                .isEqualTo("Tipo do produto não pode ser nulo: " + nomeProduto);
     }
 
     /**
-     * Teste de Robustez P4b: Carrinho vazio
-     * Verifica se o sistema lança uma exceção quando o CarrinhoDeCompras
-     * não contém itens.
-     */
-    @Test
-    @DisplayName("Robustez P4b: Lança exceção se Carrinho estiver vazio")
-    void quandoCarrinhoVazio_entaoLancaExcecao() {
-
-            CarrinhoDeCompras carrinhoVazio = TestUtils.carrinho();
-            Regiao regiao = Regiao.SUDESTE;
-            TipoCliente cliente = TipoCliente.BRONZE;
-
-            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-                    compraService.calcularCustoTotal(carrinhoVazio, regiao, cliente);
-            }, "Deveria lançar exceção para carrinho vazio");
-
-            assertThat(exception.getMessage())
-                            .as("Mensagem de erro deve bater com a implementação")
-                            .isEqualTo("Carrinho não pode estar vazio");
-    }
-
-    /**
-     * Teste de Robustez P5: Dimensões negativas ou zero
+     * Teste de Robustez P9a: Dimensões negativas ou zero
      * Verifica se o sistema lança uma exceção quando C, L ou A são <= 0.
      */
-    @ParameterizedTest(name = "Robustez P5: C={1}, L={2}, A={3} (inválido)")
+    @ParameterizedTest(name = "Robustez P9: C={1}, L={2}, A={3} (inválido)")
     @CsvSource({
                     "'-10', '10',  '10'",
                     "'10',  '-10', '10'",
                     "'10',  '10',  '-10'",
                     "'10',  '10',  '0'"
     })
-    @DisplayName("Robustez P5: Lança exceção se Dimensão for negativa ou zero")
+    @DisplayName("Robustez P9a: Lança exceção se Dimensão for negativa ou zero")
     void quandoItemComDimensaoInvalida_entaoLancaExcecao(String c, String l, String a) {
 
             String nomeProdutoInvalido = "Produto Dimensão Inválida";
@@ -427,10 +590,110 @@ public class CompraServiceParticoesTest {
     }
 
     /**
-     * Teste de Robustez P6: Peso físico negativo ou zero
+     * Teste de Robustez P9b: Comprimento nulo
+     * Verifica se o sistema lança uma exceção quando Comprimento é nulo.
+     */
+    @Test
+    @DisplayName("Robustez P9b: Lança exceção se Comprimento do produto for nulo")
+    void quandoComprimentoNulo_entaoLancaExcecao() {
+
+        Produto p = TestUtils.produtoPadrao();
+        p.setComprimento(null);
+        String nomeProduto = p.getNome();
+
+        ItemCompra item = TestUtils.item(p, 1);
+        CarrinhoDeCompras carrinho = TestUtils.carrinho(item);
+        Regiao regiao = Regiao.SUDESTE;
+        TipoCliente cliente = TipoCliente.BRONZE;
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            compraService.calcularCustoTotal(carrinho, regiao, cliente);
+        }, "Deveria lançar exceção para comprimento nulo");
+
+        assertThat(exception.getMessage())
+                .isEqualTo("Dimensões inválidas (devem ser > 0) no produto: " + nomeProduto);
+    }
+
+    /**
+     * Teste de Robustez P9b: Comprimento nulo
+     * Verifica se o sistema lança uma exceção quando Altura é nula.
+     */
+    @Test
+    @DisplayName("Robustez P9b: Lança exceção se a Altura do produto for nula")
+    void quandoAlturaNula_entaoLancaExcecao() {
+
+        Produto p = TestUtils.produtoPadrao();
+        p.setAltura(null);
+        String nomeProduto = p.getNome();
+
+        ItemCompra item = TestUtils.item(p, 1);
+        CarrinhoDeCompras carrinho = TestUtils.carrinho(item);
+        Regiao regiao = Regiao.SUDESTE;
+        TipoCliente cliente = TipoCliente.BRONZE;
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            compraService.calcularCustoTotal(carrinho, regiao, cliente);
+        }, "Deveria lançar exceção para altura nula");
+
+        assertThat(exception.getMessage())
+                .isEqualTo("Dimensões inválidas (devem ser > 0) no produto: " + nomeProduto);
+    }
+
+    /**
+     * Teste de Robustez P9c: Comprimento nulo
+     * Verifica se o sistema lança uma exceção quando Largura é nula.
+     */
+    @Test
+    @DisplayName("Robustez P9c: Lança exceção se a Largura do produto for nula")
+    void quandoLarguraNula_entaoLancaExcecao() {
+
+        Produto p = TestUtils.produtoPadrao();
+        p.setLargura(null);
+        String nomeProduto = p.getNome();
+
+        ItemCompra item = TestUtils.item(p, 1);
+        CarrinhoDeCompras carrinho = TestUtils.carrinho(item);
+        Regiao regiao = Regiao.SUDESTE;
+        TipoCliente cliente = TipoCliente.BRONZE;
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            compraService.calcularCustoTotal(carrinho, regiao, cliente);
+        }, "Deveria lançar exceção para largura nula");
+
+        assertThat(exception.getMessage())
+                .isEqualTo("Dimensões inválidas (devem ser > 0) no produto: " + nomeProduto);
+    }
+
+    /**
+     * Teste de Robustez P10a: Peso físico nulo
+     * Verifica se o sistema lança uma exceção quando o peso nulo.
+     */
+    @Test
+    @DisplayName("Robustez P10a: Lança exceção se Peso do produto for nulo")
+    void quandoPesoProdutoNulo_entaoLancaExcecao() {
+
+        Produto p = TestUtils.produtoPadrao();
+        p.setPesoFisico(null);
+        String nomeProduto = p.getNome();
+
+        ItemCompra item = TestUtils.item(p, 1);
+        CarrinhoDeCompras carrinho = TestUtils.carrinho(item);
+        Regiao regiao = Regiao.SUDESTE;
+        TipoCliente cliente = TipoCliente.BRONZE;
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            compraService.calcularCustoTotal(carrinho, regiao, cliente);
+        }, "Deveria lançar exceção para peso nulo");
+
+        assertThat(exception.getMessage())
+                .isEqualTo("Peso físico inválido (deve ser > 0) no produto: " + nomeProduto);
+    }
+
+    /**
+     * Teste de Robustez P10b: Peso físico negativo ou zero
      * Verifica se o sistema lança uma exceção quando o peso é <= 0.
      */
-    @ParameterizedTest(name = "Robustez P6: Peso = {0} (inválido)")
+    @ParameterizedTest(name = "Robustez P10b: Peso = {0} (inválido)")
     @ValueSource(strings = { "0.0", "-1.0" })
     @DisplayName("Robustez P6: Lança exceção se Peso for negativo ou zero")
     void quandoItemComPesoInvalido_entaoLancaExcecao(String pesoInvalido) {
@@ -456,74 +719,5 @@ public class CompraServiceParticoesTest {
             assertThat(exception.getMessage())
                             .as("Mensagem de erro deve bater com a implementação")
                             .isEqualTo("Peso físico inválido (deve ser > 0) no produto: " + nomeProdutoInvalido);
-    }
-
-    /**
-     * Teste de Robustez P7: Região nula
-     * Verifica se o sistema lança uma exceção quando a Regiao é nula.
-     */
-    @Test
-    @DisplayName("Robustez P7: Lança exceção se Regiao for nula")
-    void quandoRegiaoNula_entaoLancaExcecao() {
-
-            Produto p = TestUtils.produtoPadrao();
-            CarrinhoDeCompras carrinho = TestUtils.carrinho(TestUtils.item(p, 1));
-            TipoCliente cliente = TipoCliente.BRONZE;
-
-            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-                    compraService.calcularCustoTotal(carrinho, null, cliente);
-            }, "Deveria lançar exceção para região nula");
-
-            assertThat(exception.getMessage())
-                            .as("Mensagem de erro deve bater com a implementação")
-                            .isEqualTo("Região não pode ser nula");
-    }
-
-    @Test
-    @DisplayName("Robustez P8: Lança exceção se o Tipo do produto for nulo")
-    void quandoTipoProdutoNulo_entaoLancaExcecao() {
-
-        Produto p = TestUtils.produtoPadrao();
-        p.setTipo(null);
-        String nomeProduto = p.getNome();
-
-        ItemCompra item = TestUtils.item(p, 1);
-        CarrinhoDeCompras carrinho = TestUtils.carrinho(item);
-        Regiao regiao = Regiao.SUDESTE;
-        TipoCliente cliente = TipoCliente.BRONZE;
-
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            compraService.calcularCustoTotal(carrinho, regiao, cliente);
-        }, "Deveria lançar exceção para tipo de produto nulo");
-
-        assertThat(exception.getMessage())
-                .isEqualTo("Tipo do produto não pode ser nulo: " + nomeProduto);
-    }
-
-    // --- TESTE DE ROBUSTEZ: Item ou Produto Nulo ---
-    @ParameterizedTest(name = "Robustez P9: item = {0}, produto = {1}")
-    @MethodSource("fornecerItensNulos")
-    @DisplayName("Robustez P9: Lança exceção se ItemCompra ou Produto for nulo")
-    void quandoItemOuProdutoNulo_entaoLancaExcecao(ItemCompra itemInvalido) {
-            CarrinhoDeCompras carrinho = TestUtils.carrinho(itemInvalido);
-
-            Regiao regiao = Regiao.SUDESTE;
-            TipoCliente cliente = TipoCliente.BRONZE;
-
-            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-                    compraService.calcularCustoTotal(carrinho, regiao, cliente);
-            });
-
-            assertThat(exception.getMessage()).as("Mensagem de erro deve ser clara")
-                            .contains("Item de compra ou produto não pode ser nulo");
-    }
-
-    static Stream<ItemCompra> fornecerItensNulos() {
-            Produto produtoValido = TestUtils.produtoPadrao();
-
-            return Stream.of(
-                            null,
-                            TestUtils.item(null, 1)
-            );
     }
 }

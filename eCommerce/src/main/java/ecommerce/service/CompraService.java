@@ -198,9 +198,9 @@ public class CompraService {
 	
 		for (ItemCompra item : itensCarrinho) {
 			Produto produto = item.getProduto();
-			if (produto != null && produto.getTipo() == tipoProduto) {
-				BigDecimal precoProduto = produto.getPreco() == null ? BigDecimal.ZERO : produto.getPreco();
-				BigDecimal quantidadeItem = BigDecimal.valueOf(item.getQuantidade() == null ? 0L : item.getQuantidade());
+			if (produto.getTipo() == tipoProduto) {
+				BigDecimal precoProduto = produto.getPreco();
+				BigDecimal quantidadeItem = BigDecimal.valueOf(item.getQuantidade());
 				subtotalTipo = subtotalTipo.add(precoProduto.multiply(quantidadeItem));
 			}
 		}
