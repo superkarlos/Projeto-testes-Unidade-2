@@ -241,13 +241,13 @@ public class CompraService {
 	}
 	
 	private BigDecimal calcularFrete(BigDecimal pesoTotal) {
-		if (pesoTotal.compareTo(BigDecimal.ZERO) == 0 || pesoTotal.compareTo(new BigDecimal("5.00")) <= 0)
+		if (pesoTotal.compareTo(new BigDecimal("5.00")) <= 0)
 			return BigDecimal.ZERO;
 	
-		if (pesoTotal.compareTo(new BigDecimal("5.00")) > 0 && pesoTotal.compareTo(new BigDecimal("10.00")) <= 0)
+		if (pesoTotal.compareTo(new BigDecimal("10.00")) <= 0)
 			return pesoTotal.multiply(new BigDecimal("2.00")).add(new BigDecimal("12.00"));
 	
-		if (pesoTotal.compareTo(new BigDecimal("10.00")) > 0 && pesoTotal.compareTo(new BigDecimal("50.00")) <= 0)
+		if (pesoTotal.compareTo(new BigDecimal("50.00")) <= 0)
 			return pesoTotal.multiply(new BigDecimal("4.00")).add(new BigDecimal("12.00"));
 	
 		return pesoTotal.multiply(new BigDecimal("7.00")).add(new BigDecimal("12.00"));
