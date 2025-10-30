@@ -258,8 +258,8 @@ public class CompraService {
 	
 		for (ItemCompra item : itensCarrinho) {
 			Produto produto = item.getProduto();
-			if (produto != null && Boolean.TRUE.equals(produto.isFragil())) {
-				BigDecimal quantidade = BigDecimal.valueOf(item.getQuantidade() == null ? 0L : item.getQuantidade());
+			if (Boolean.TRUE.equals(produto.isFragil())) {
+				BigDecimal quantidade = BigDecimal.valueOf(item.getQuantidade());
 				taxaTotal = taxaTotal.add(new BigDecimal("5.00").multiply(quantidade));
 			}
 		}
