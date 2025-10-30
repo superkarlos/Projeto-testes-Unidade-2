@@ -21,25 +21,24 @@ A funcionalidade de finalização de compra calcula o preço total considerando:
 - Descontos de fidelidade (Ouro, Prata, Bronze).
 - Arredondamento final para duas casas decimais (Half-up).
 
-## Regras de Negócio
+## Partições de domínio e valores limites do domínio
+<img width="1296" height="699" alt="image" src="https://github.com/user-attachments/assets/a2435862-bf0a-492e-ac4c-872551ab2381" />
 
-<img width="897" height="219" alt="Captura de tela de 2025-10-26 16-25-25" src="https://github.com/user-attachments/assets/4d916db5-0f2f-4fdc-872e-dad8fb766326" />
+## Tabelas de decisão
+<img width="1495" height="233" alt="tabela-decisao-descontos" src="https://github.com/user-attachments/assets/8f232cda-c542-4794-aa30-c6d8133fa540" />
 
+## Projeto dos Casos de Teste (Mapeamento)
 
-## Organização dos Testes
+Este projeto utiliza um conjunto de 87 testes automatizados, com uso extensivo de Testes Parametrizados (`@ParameterizedTest` com `@CsvFileSource`) para cobrir os critérios de caixa preta.
 
-<img width="868" height="195" alt="Captura de tela de 2025-10-26 16-23-40" src="https://github.com/user-attachments/assets/2f20fe69-85a5-4925-9bad-711dad738f92" />
+Devido ao alto volume de testes e ao uso de arquivos CSV externos, a documentação detalhada dos casos de teste (conforme solicitado ) encontra-se diretamente nos arquivos CSV de teste, localizados em `src/test/resources/ecommerce/service/`.
 
+A estratégia de mapeamento é a seguinte:
 
-## Tabela de Casos de Teste
-<img width="839" height="324" alt="Captura de tela de 2025-10-26 16-20-49" src="https://github.com/user-attachments/assets/6738bf44-2bb8-4014-ad5a-cf1caeefbc16" />
+1.  **Partições e Limites:** Os arquivos `particoes_*.csv` e `limites_*.csv` implementam diretamente as partições e limites definidos na imagem "Partições de domínio e valores limites" (Seção 2). Cada linha em um CSV representa um caso de teste que cobre um ponto de dados específico daquele critério.
+2.  **Tabela de Decisão:** Os testes para a Tabela de Decisão (`Tabela de Decisão: Descontos Combinados` ) são implementados em uma classe de teste dedicada, `CompraServiceRegrasTest.java`.
+3.  **Robustez:** Os testes de robustez (P1-P10) estão na classe `CompraServiceParticoesTest.java` e usam `@Test` em sua maioria, garantindo que a exceção correta (`IllegalArgumentException`) é lançada.
 
-## Cobertura MC/DC (Decisão Composta Mais Complexa)
-
-<img width="822" height="159" alt="Captura de tela de 2025-10-26 16-28-30" src="https://github.com/user-attachments/assets/7701b511-2227-4d2e-827e-e0b42eb05dc6" />
-
-CFG (Control Flow Graph - Simplificado)
-<img width="1024" height="1024" alt="Gemini_Generated_Image_fsvkiefsvkiefsvk" src="https://github.com/user-attachments/assets/41589c0f-d6d7-4faf-af22-3b2d9838a05f" />
 
 ## Instruções de Execução Pré-requisitos
 
@@ -57,3 +56,4 @@ CFG (Control Flow Graph - Simplificado)
 
 ### O relatório ficará disponível em:
 target/site/jacoco/index.html
+
