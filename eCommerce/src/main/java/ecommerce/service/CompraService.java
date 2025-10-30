@@ -222,16 +222,17 @@ public class CompraService {
 	
 		for (ItemCompra item : itensCarrinho) {
 			Produto produto = item.getProduto();
-			if (produto == null) continue;
-	
-			BigDecimal pesoFisico = produto.getPesoFisico() == null ? BigDecimal.ZERO : produto.getPesoFisico();
-			BigDecimal comprimento = produto.getComprimento() == null ? BigDecimal.ZERO : produto.getComprimento();
-			BigDecimal largura = produto.getLargura() == null ? BigDecimal.ZERO : produto.getLargura();
-			BigDecimal altura = produto.getAltura() == null ? BigDecimal.ZERO : produto.getAltura();
+
+			BigDecimal pesoFisico = produto.getPesoFisico();
+			BigDecimal comprimento = produto.getComprimento();
+			BigDecimal largura = produto.getLargura();
+			BigDecimal altura = produto.getAltura();
+            BigDecimal quantidade = BigDecimal.valueOf(item.getQuantidade());
+
 			BigDecimal pesoCubico = comprimento.multiply(largura).multiply(altura).divide(new BigDecimal("6000"), 
 			10, RoundingMode.HALF_UP);
+
 			BigDecimal pesoTributavel = pesoFisico.max(pesoCubico);
-			BigDecimal quantidade = BigDecimal.valueOf(item.getQuantidade() == null ? 0L : item.getQuantidade());
 	
 			pesoTotal = pesoTotal.add(pesoTributavel.multiply(quantidade));
 		}
