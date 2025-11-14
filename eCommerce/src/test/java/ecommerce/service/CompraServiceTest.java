@@ -3,20 +3,54 @@ package ecommerce.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 
+import ecommerce.dto.CompraDTO;
+import ecommerce.dto.DisponibilidadeDTO;
+import ecommerce.dto.EstoqueBaixaDTO;
+import ecommerce.dto.PagamentoDTO;
 import ecommerce.entity.CarrinhoDeCompras;
+import ecommerce.entity.Cliente;
 import ecommerce.entity.ItemCompra;
 import ecommerce.entity.Produto;
 import ecommerce.entity.Regiao;
 import ecommerce.entity.TipoCliente;
 import ecommerce.entity.TipoProduto;
+import ecommerce.external.IEstoqueExternal;
+import ecommerce.external.IPagamentoExternal;
 
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 public class CompraServiceTest {
+
+    @Mock
+    private CarrinhoDeComprasService carrinhoService;
+
+    @Mock
+    private ClienteService clienteService;
+
+    @Mock
+    private IEstoqueExternal estoqueExternal;
+
+    @Mock
+    private IPagamentoExternal pagamentoExternal;
+
+    @InjectMocks
+    private CompraService compraService;
 
     private CompraService service;
 
@@ -31,15 +65,60 @@ public class CompraServiceTest {
     }
 
     @Test
+    void deveFinalizarCompraComSucesso() {
+
+        Long carrinhoId = 1L;
+        Long clienteId = 2L;
+
+        Cliente cliente = new Cliente();
+
+        cliente.setId(clienteId);
+        cliente.setRegiao(Regiao.SUDESTE);
+        cliente.setTipo(TipoCliente.BRONZE);
+
+        Produto produto = criarProduto("Calular", PRECO_BASE, TipoProduto.ELETRONICO, true);
+
+        ItemCompra item = new ItemCompra();
+        item.setProduto(produto);
+        item.setQuantidade(2L);
+
+        CarrinhoDeCompras carrinho = new CarrinhoDeCompras();
+        carrinho.setItens(List.of(item));
+        
+        when(clienteService.buscarPorId(clienteId))
+            .thenReturn(cliente);
+
+        when(carrinhoService.buscarPorCarrinhoIdEClienteId(carrinhoId, cliente))
+            .thenReturn(carrinho);
+
+        when(estoqueExternal.verificarDisponibilidade(anyList(), anyList()))
+                .thenReturn(new DisponibilidadeDTO(true, List.of()));
+
+        when(pagamentoExternal.autorizarPagamento(eq(clienteId), anyDouble()))
+            .thenReturn(new PagamentoDTO(true, 123L));
+
+        when(estoqueExternal.darBaixa(anyList(), anyList()))
+            .thenReturn(new EstoqueBaixaDTO(true));
+
+        CompraDTO resultado = compraService.finalizarCompra(carrinhoId, clienteId);
+
+        assertTrue(resultado.sucesso());
+        assertEquals(123L, resultado.transacaoPagamentoId());
+        verify(estoqueExternal).verificarDisponibilidade(anyList(), anyList());
+        verify(pagamentoExternal).autorizarPagamento(eq(clienteId), anyDouble());
+        verify(estoqueExternal).darBaixa(anyList(), anyList());
+    }
+
+    @Test
     @DisplayName("Deve lançar exceção quando o carrinho for nulo")
     void calcularCustoTotal_quandoCarrinhoNulo_entaoLancaExcecao() {
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-         () -> service.calcularCustoTotal(null, Regiao.SUDESTE, TipoCliente.BRONZE));
+                () -> service.calcularCustoTotal(null, Regiao.SUDESTE, TipoCliente.BRONZE));
 
         assertThat(exception).isNotNull().as("Esperado que exista execao");
         assertThat(exception.getMessage()).isEqualTo("Carrinho não pode ser nulo")
-         .as("Esperado a mensagem igual da execao");
+                .as("Esperado a mensagem igual da execao");
         assertEquals("java.lang.IllegalArgumentException", exception.getClass().getName());
     }
 
@@ -152,8 +231,6 @@ public class CompraServiceTest {
                 .as("Frete Nordeste deve ser maior que Sudeste devido ao multiplicador de 1.10")
                 .isGreaterThan(totalSudeste);
     }
-
-    
 
     private Produto criarProduto(String nome, BigDecimal preco, TipoProduto tipo, boolean fragil) {
         Produto p = new Produto();
