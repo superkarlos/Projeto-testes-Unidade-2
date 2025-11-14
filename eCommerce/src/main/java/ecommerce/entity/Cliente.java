@@ -19,7 +19,7 @@ public class Cliente
 
 	private Regiao regiao;
 
-	@Enumerated(EnumType.STRING) // Armazenar o enum como String no banco
+	@Enumerated(EnumType.STRING)
 	private TipoCliente tipo;
 
 	public Cliente()

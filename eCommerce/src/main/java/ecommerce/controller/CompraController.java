@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import ecommerce.dto.CompraDTO;
 import ecommerce.service.CompraService;
 
@@ -21,7 +20,7 @@ public class CompraController
 		this.compraService = compraService;
 	}
 
-	/* @PostMapping("/finalizar")
+	@PostMapping("/finalizar")
 	public ResponseEntity<CompraDTO> finalizarCompra(@RequestParam Long carrinhoId, @RequestParam Long clienteId)
 	{
 		try
@@ -42,5 +41,5 @@ public class CompraController
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 					.body(new CompraDTO(false, null, "Erro ao processar compra."));
 		}
-	} */
+	} 
 }
