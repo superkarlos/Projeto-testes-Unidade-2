@@ -84,18 +84,18 @@ public class CompraService {
 		validarItens(itensCarrinho);
 	
 		BigDecimal subtotalGeral = calcularSubtotal(itensCarrinho);
-		BigDecimal descontoPorTipo = calcularDescontoPorTipo(itensCarrinho);
-		BigDecimal subtotalComDescontoPorTipo = subtotalGeral.subtract(descontoPorTipo);
-		BigDecimal descontoPorValorTotal = calcularDescontoPorValor(subtotalComDescontoPorTipo);
-		BigDecimal subtotalFinal = subtotalComDescontoPorTipo.subtract(descontoPorValorTotal);
+		// BigDecimal descontoPorTipo = calcularDescontoPorTipo(itensCarrinho);
+		// BigDecimal subtotalComDescontoPorTipo = subtotalGeral.subtract(descontoPorTipo);
+		BigDecimal descontoPorValorTotal = calcularDescontoPorValor(subtotalGeral);
+		BigDecimal subtotalFinal = subtotalGeral.subtract(descontoPorValorTotal);
 		BigDecimal pesoTotal = calcularPesoTotal(itensCarrinho);
 		BigDecimal valorFrete = calcularFrete(pesoTotal);
 		BigDecimal taxaFragilidade = calcularTaxaDeProdutosFrageis(itensCarrinho);
 		valorFrete = valorFrete.add(taxaFragilidade);
-		BigDecimal freteComMultiplicador = aplicarMultiplicadorDeRegiao(valorFrete, regiao);
-		BigDecimal freteFinal = aplicarDescontoPorTipoCliente(freteComMultiplicador, tipoCliente);
+		// BigDecimal freteComMultiplicador = aplicarMultiplicadorDeRegiao(valorFrete, regiao);
+		// BigDecimal freteFinal = aplicarDescontoPorTipoCliente(freteComMultiplicador, tipoCliente);
 	
-		return subtotalFinal.add(freteFinal).setScale(2, RoundingMode.HALF_UP);
+		return subtotalFinal.add(valorFrete).setScale(2, RoundingMode.HALF_UP);
 	}
 	
 
@@ -161,7 +161,7 @@ public class CompraService {
 		return subtotal;
 	}
 	
-	private BigDecimal calcularDescontoPorTipo(List<ItemCompra> itensCarrinho) {
+	/* private BigDecimal calcularDescontoPorTipo(List<ItemCompra> itensCarrinho) {
 
 		Map<TipoProduto, Long> quantidadePorTipo = new HashMap<>();
 
@@ -191,7 +191,7 @@ public class CompraService {
 		if (quantidade >= 5 && quantidade <= 7) return new BigDecimal("0.10");
 		if (quantidade >= 8) return new BigDecimal("0.15");
 		return BigDecimal.ZERO;
-	}
+	} 
 	
 	private BigDecimal calcularSubtotalPorTipo(List<ItemCompra> itensCarrinho, TipoProduto tipoProduto) {
 		BigDecimal subtotalTipo = BigDecimal.ZERO;
@@ -206,12 +206,12 @@ public class CompraService {
 		}
 	
 		return subtotalTipo;
-	}
+	} */
 	
 	private BigDecimal calcularDescontoPorValor(BigDecimal subtotal) {
-		if (subtotal.compareTo(new BigDecimal("1000.00")) > 0) {
+		if (subtotal.compareTo(new BigDecimal("1000.00")) >= 0) {
 			return subtotal.multiply(new BigDecimal("0.20"));
-		} else if (subtotal.compareTo(new BigDecimal("500.00")) > 0) {
+		} else if (subtotal.compareTo(new BigDecimal("500.00")) >= 0) {
 			return subtotal.multiply(new BigDecimal("0.10"));
 		}
 		return BigDecimal.ZERO;
@@ -243,14 +243,14 @@ public class CompraService {
 	private BigDecimal calcularFrete(BigDecimal pesoTotal) {
 		if (pesoTotal.compareTo(new BigDecimal("5.00")) <= 0)
 			return BigDecimal.ZERO;
-	
+
 		if (pesoTotal.compareTo(new BigDecimal("10.00")) <= 0)
-			return pesoTotal.multiply(new BigDecimal("2.00")).add(new BigDecimal("12.00"));
+			return pesoTotal.multiply(new BigDecimal("2.00"));
 	
 		if (pesoTotal.compareTo(new BigDecimal("50.00")) <= 0)
-			return pesoTotal.multiply(new BigDecimal("4.00")).add(new BigDecimal("12.00"));
+			return pesoTotal.multiply(new BigDecimal("4.00"));
 	
-		return pesoTotal.multiply(new BigDecimal("7.00")).add(new BigDecimal("12.00"));
+		return pesoTotal.multiply(new BigDecimal("7.00"));
 	}
 	
 	private BigDecimal calcularTaxaDeProdutosFrageis(List<ItemCompra> itensCarrinho) {
@@ -267,7 +267,7 @@ public class CompraService {
 		return taxaTotal;
 	}
 	
-	private BigDecimal aplicarMultiplicadorDeRegiao(BigDecimal valorFrete, Regiao regiao) {
+	/* private BigDecimal aplicarMultiplicadorDeRegiao(BigDecimal valorFrete, Regiao regiao) {
 		BigDecimal multiplicador = getMultiplicadorPorRegiao(regiao);
 		return valorFrete.multiply(multiplicador);
 	}
@@ -295,9 +295,5 @@ public class CompraService {
 			} else {
 				return new BigDecimal("1.00"); // por padeão ele retorna 1.00 no caso SUDESTE
 			} 
-    }
-
-    
-	
-    
+    } */
 }
